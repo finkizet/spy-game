@@ -264,11 +264,12 @@
 
         const shuffledCards = shuffleWithSeed(clashCards, seedNum + 1);
 
+        const sharedCard = shuffledCards[0];
+
         const roles = [];
 
         for (let i = 0; i < playersCount - 1; i++) {
-            const card = shuffledCards[i % shuffledCards.length];
-            roles.push(card);
+            roles.push(sharedCard);
         }
 
         roles.push("Шпион");
@@ -278,16 +279,18 @@
         const myRole = shuffledRoles[playerIndex - 1];
 
 
+        const myRole = shuffledRoles[playerIndex - 1];
+
+
         roleText.textContent = myRole;
 
         if (myRole === "Шпион") {
             extraText.textContent =
                 "Ты шпион. Ты НЕ знаешь, какая карта выпала другим. " +
-                "Слушай, как они описывают свои карты из Clash Royale, и пытайся не спалиться.";
+                "Слушай, как они описывают свою карту из Clash Royale, и пытайся не спалиться.";
         } else {
             extraText.textContent =
-                "Тебе выпала карта из Clash Royale: \"" + myRole + "\". " +
-                "Не показывай экран, только запомни карту и описывай её в разговоре так, чтобы шпиону было сложнее понять, что именно это за карта.";
+                "Описывай карту в разговоре так, чтобы шпиону было сложнее понять, что именно это за карта.";
         }
 
         resultCard.style.display = "block";
