@@ -46,7 +46,8 @@
             margin-bottom: 4px;
         }
 
-        input {
+        input,
+        select {
             width: 100%;
             padding: 10px 12px;
             border-radius: 8px;
@@ -58,7 +59,8 @@
             outline: none;
         }
 
-        input:focus {
+        input:focus,
+        select:focus {
             border-color: #3b82f6;
         }
 
@@ -129,10 +131,20 @@
 </head>
 <body>
 <div class="container">
-    <h1>Шпион - Clash Royale Edition</h1>
+    <h1>Шпион — мультиигра</h1>
     <div class="subtitle">
-        Все договариваются об одном <b>коде</b> и количестве игроков (максимум 10).
-        Потом каждый вводит <b>свой номер игрока</b> и получает либо карту из Clash Royale, либо роль шпиона.
+        Выберите игру, договоритесь об одном <b>коде</b> и количестве игроков (максимум 10),
+        затем каждый вводит свой номер игрока и получает роль.
+    </div>
+
+    <label for="gameMode">Игра</label>
+    <select id="gameMode">
+        <option value="clash">Clash Royale</option>
+        <option value="dota">Dota 2</option>
+    </select>
+
+    <div class="help">
+        От выбора игры зависит список карт/героев и формулировки.
     </div>
 
     <label for="seedInput">Общий код / seed</label>
@@ -146,7 +158,7 @@
     <input id="playersInput" type="number" min="2" max="10" value="4" />
 
     <div class="help">
-        <b>Максимум — 10 игроков.</b> По умолчанию будет 1 шпион, остальные получают карты.
+        <b>Максимум — 10 игроков.</b> По умолчанию будет 1 шпион, остальные получают одинаковый объект.
     </div>
 
     <label for="playerIndexInput">Твой номер игрока</label>
@@ -168,25 +180,46 @@
     <div id="errorBox" class="error" style="display:none;"></div>
 
     <div class="small">
-        ⚠ Если кто-то введёт другой код или количество игроков - у него будут другие результаты.
+        ⚠ Если кто-то введёт другой код или количество игроков — у него будут другие результаты.
         Для честной игры все должны внимательно вводить данные и не подсматривать.
     </div>
 </div>
 
 <script>
-
-    const clashCards = [
-        "Рыцарь",
-        "Лучницы",
-        "Банда Гоблинов",
-        "Гигант",
-        "ПЕККА",
-        "Мини-пекка",
-        "Валькирия",
-        "Ледяной колдун",
-        "Маг",
-        "Принц"
-    ];
+    const gameModes = {
+        clash: {
+            title: "Clash Royale",
+            items: [
+                "Рыцарь",
+                "Лучницы",
+                "Банда гоблинов",
+                "Гигант",
+                "П.Е.К.К.А",
+                "Мини-пекка",
+                "Валькирия",
+                "Ледяной колдун",
+                "Маг",
+                "Принц"
+            ],
+            label: "карта из Clash Royale"
+        },
+        dota: {
+            title: "Dota 2",
+            items: [
+                "Pudge",
+                "Invoker",
+                "Juggernaut",
+                "Crystal Maiden",
+                "Phantom Assassin",
+                "Axe",
+                "Shadow Fiend",
+                "Lina",
+                "Lion",
+                "Earthshaker"
+            ],
+            label: "герой из Dota 2"
+        }
+    };
 
     function hashStringToInt(str) {
         let h = 0;
@@ -218,7 +251,7 @@
         return arr;
     }
 
-
+    const gameModeSelect = document.getElementById("gameMode");
     const seedInput = document.getElementById("seedInput");
     const playersInput = document.getElementById("playersInput");
     const playerIndexInput = document.getElementById("playerIndexInput");
@@ -235,7 +268,8 @@
         const seedStr = seedInput.value.trim();
         const playersCount = Number(playersInput.value);
         const playerIndex = Number(playerIndexInput.value);
-
+        const modeKey = gameModeSelect.value;
+        const mode = gameModes[modeKey];
 
         if (!seedStr) {
             showError("Введите общий код / seed.");
@@ -262,31 +296,29 @@
             seedNum = 1;
         }
 
-        const shuffledCards = shuffleWithSeed(clashCards, seedNum + 1);
-
-        const sharedCard = shuffledCards[0];
+        const shuffledItems = shuffleWithSeed(mode.items, seedNum + 1);
+        const sharedItem = shuffledItems[0];
 
         const roles = [];
-
         for (let i = 0; i < playersCount - 1; i++) {
-            roles.push(sharedCard);
+            roles.push(sharedItem);
         }
-
         roles.push("Шпион");
 
         const shuffledRoles = shuffleWithSeed(roles, seedNum + 2);
-
         const myRole = shuffledRoles[playerIndex - 1];
 
         roleText.textContent = myRole;
 
         if (myRole === "Шпион") {
             extraText.textContent =
-                "Ты шпион. Ты НЕ знаешь, какая карта выпала другим. " +
-                "Слушай, как они описывают свою карту из Clash Royale, и пытайся не спалиться.";
+                "Ты шпион в игре " + mode.title + ". Ты НЕ знаешь, какой " + mode.label +
+                " выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.";
         } else {
             extraText.textContent =
-                "Описывай карту в разговоре так, чтобы шпиону было сложнее понять, что именно это за карта.";
+                "Тебе выпал " + mode.label + ": \"" + myRole + "\". " +
+                "У всех остальных не-шпионов такой же " + mode.label + ". " +
+                "Не показывай экран, просто запомни и описывай его так, чтобы шпиону было сложно понять, что именно это за " + mode.label + ".";
         }
 
         resultCard.style.display = "block";
