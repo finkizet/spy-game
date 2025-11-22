@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Игра Шпион</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 24px 16px 40px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #9ca3af;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #3b82f6;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            background: #3b82f6;
+            color: #f9fafb;
+            margin-top: 4px;
+        }
+
+        button:hover {
+            filter: brightness(1.05);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .help {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 4px;
+            margin-bottom: 12px;
+        }
+
+        .result-card {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: #020617;
+            border: 1px solid #1f2937;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            margin-bottom: 6px;
+        }
+
+        .role {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .error {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fecaca;
+            font-size: 0.85rem;
+        }
+
+        .small {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Шпион (локальная онлайн-версия)</h1>
+    <div class="subtitle">
+        Все договариваются об одном <b>коде</b> и количестве игроков.
+        Потом каждый вводит <b>свой номер игрока</b> и получает роль.
+    </div>
+
+    <label for="seedInput">Общий код / seed</label>
+    <input id="seedInput" type="text" placeholder="Например: 548129 или 'котлета'" />
+
+    <div class="help">
+        Все игроки должны ввести <b>один и тот же</b> код. Можно число или слово.
+    </div>
+
+    <label for="playersInput">Количество игроков</label>
+    <input id="playersInput" type="number" min="2" max="20" value="4" />
+
+    <div class="help">
+        То же число у всех. По умолчанию будет 1 шпион, остальные мирные.
+    </div>
+
+    <label for="playerIndexInput">Твой номер игрока</label>
+    <input id="playerIndexInput" type="number" min="1" value="1" />
+
+    <div class="help">
+        Каждый выбирает свой уникальный номер: 1, 2, 3, 4, ...
+        Главное — не дублировать номера между людьми.
+    </div>
+
+    <button id="showRoleBtn">Показать мою роль</button>
+
+    <div id="result" class="result-card" style="display:none;">
+        <div class="result-title">Твоя роль:</div>
+        <div id="roleText" class="role"></div>
+        <div id="extraText" class="small"></div>
+    </div>
+
+    <div id="errorBox" class="error" style="display:none;"></div>
+
+    <div class="small">
+        ⚠ Если кто-то введёт другой код, количество игроков или номер - у него будут другие роли.
+        Для честной игры все должны внимательно вводить данные.
+    </div>
+</div>
+
+<script>
+    function hashStringToInt(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+            h = (h * 31 + str.charCodeAt(i)) | 0;
+        }
+        return h;
+    }
+
+    function mulberry32(seed) {
+        let t = seed | 0;
+        return function() {
+            t += 0x6D2B79F5;
+            let r = t;
+            r = Math.imul(r ^ (r >>> 15), r | 1);
+            r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+            r ^= r >>> 14;
+            return (r >>> 0) / 4294967296;
+        };
+    }
+
+
+    function shuffleWithSeed(array, seed) {
+        const rand = mulberry32(seed);
+        const arr = array.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    const seedInput = document.getElementById("seedInput");
+    const playersInput = document.getElementById("playersInput");
+    const playerIndexInput = document.getElementById("playerIndexInput");
+    const showRoleBtn = document.getElementById("showRoleBtn");
+    const resultCard = document.getElementById("result");
+    const roleText = document.getElementById("roleText");
+    const extraText = document.getElementById("extraText");
+    const errorBox = document.getElementById("errorBox");
+
+    showRoleBtn.addEventListener("click", function () {
+        errorBox.style.display = "none";
+        resultCard.style.display = "none";
+
+        const seedStr = seedInput.value.trim();
+        const playersCount = Number(playersInput.value);
+        const playerIndex = Number(playerIndexInput.value);
+
+        if (!seedStr) {
+            showError("Введите общий код / seed.");
+            return;
+        }
+        if (!Number.isFinite(playersCount) || playersCount < 2) {
+            showError("Количество игроков должно быть не меньше 2.");
+            return;
+        }
+        if (!Number.isFinite(playerIndex) || playerIndex < 1 || playerIndex > playersCount) {
+            showError("Номер игрока должен быть от 1 до количества игроков.");
+            return;
+        }
+
+
+        let seedNum = Number(seedStr);
+        if (!Number.isFinite(seedNum)) {
+            seedNum = hashStringToInt(seedStr);
+        }
+        if (seedNum === 0) {
+            seedNum = 1;
+        }
+
+        const roles = [];
+
+        for (let i = 0; i < playersCount - 1; i++) {
+            roles.push("Мирный житель");
+        }
+
+        roles.push("Шпион");
+
+
+        const shuffledRoles = shuffleWithSeed(roles, seedNum);
+
+        const myRole = shuffledRoles[playerIndex - 1];
+
+        roleText.textContent = myRole;
+
+        if (myRole === "Шпион") {
+            extraText.textContent = "Ты шпион. Постарайся понять локацию по разговорам других.";
+        } else {
+            extraText.textContent = "Ты мирный. Знаешь локацию, пытайся вычислить шпиона.";
+        }
+
+        resultCard.style.display = "block";
+    });
+
+    function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
+    }
+</script>
+</body>
+</html>
