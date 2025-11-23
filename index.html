@@ -120,20 +120,53 @@
             color: #6b7280;
             margin-top: 16px;
         }
+
+        /* Верхняя панель для выбора языка */
+        #langTopBar {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        #langIcon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.9;
+        }
+
+        #langSelectTop {
+            width: auto;
+            min-width: 110px;
+            margin: 0;
+            padding-inline: 10px;
+        }
+
+        @media (max-width: 480px) {
+            #langTopBar {
+                top: 8px;
+                right: 8px;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 id="heading"></h1>
-    <div id="subtitle" class="subtitle"></div>
 
-    <label for="langSelect" id="labelLang"></label>
-    <select id="langSelect">
+<!-- Верхняя панель выбора языка -->
+<div id="langTopBar">
+    <img src="assets/language.png" id="langIcon" alt="Language" />
+    <select id="langSelectTop">
         <option value="ru">Русский</option>
         <option value="en">English</option>
     </select>
+</div>
 
-    <div id="helpLang" class="help"></div>
+<div class="container">
+    <h1 id="heading"></h1>
+    <div id="subtitle" class="subtitle"></div>
 
     <label for="gameMode" id="labelGame"></label>
     <select id="gameMode">
@@ -218,8 +251,6 @@
             pageTitle: "finkizet game",
             heading: "Шпион — мультиигра",
             subtitle: "Выберите игру, договоритесь об одном коде и количестве игроков (максимум 10), затем каждый вводит свой номер игрока и получает роль.",
-            labelLang: "Язык / Language",
-            helpLang: "Выберите язык интерфейса. Имена героев Dota 2 остаются на английском.",
             labelGame: "Игра",
             helpGameMode: "От выбора игры зависит список карт/героев и формулировки.",
             labelSeed: "Общий код / seed",
@@ -251,8 +282,6 @@
             pageTitle: "finkizet game",
             heading: "Spy — multi game",
             subtitle: "Choose a game, agree on one shared code and player count (up to 10), then each player enters their number and gets a role.",
-            labelLang: "Language",
-            helpLang: "Choose interface language. Dota 2 hero names stay in English.",
             labelGame: "Game",
             helpGameMode: "Game selection changes the list of cards/heroes and phrasing.",
             labelSeed: "Shared code / seed",
@@ -271,7 +300,7 @@
                 playersMin: "Number of players must be at least 2.",
                 playersMax: "Maximum number of players is 10.",
                 badIndex: "Player number must be between 1 and the total number of players.",
-                cheat: "Play fair! Don't peek! If you think this is a mistake, choose another seed."
+                cheat: "Play fair! Don't peek! If you think this is a mistake, choose another code."
             },
             spyText(modeTitle, label) {
                 return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone else got. Listen to how they describe it and try not to get caught.`;
@@ -319,7 +348,7 @@
         return item.id;
     }
 
-    const langSelect = document.getElementById("langSelect");
+    const langSelect = document.getElementById("langSelectTop");
     const gameModeSelect = document.getElementById("gameMode");
     const seedInput = document.getElementById("seedInput");
     const playersInput = document.getElementById("playersInput");
@@ -332,8 +361,6 @@
 
     const headingEl = document.getElementById("heading");
     const subtitleEl = document.getElementById("subtitle");
-    const labelLangEl = document.getElementById("labelLang");
-    const helpLangEl = document.getElementById("helpLang");
     const labelGameEl = document.getElementById("labelGame");
     const helpGameModeEl = document.getElementById("helpGameMode");
     const labelSeedEl = document.getElementById("labelSeed");
@@ -350,8 +377,6 @@
         document.title = t.pageTitle;
         headingEl.textContent = t.heading;
         subtitleEl.textContent = t.subtitle;
-        labelLangEl.textContent = t.labelLang;
-        helpLangEl.textContent = t.helpLang;
         labelGameEl.textContent = t.labelGame;
         helpGameModeEl.textContent = t.helpGameMode;
         labelSeedEl.textContent = t.labelSeed;
@@ -412,13 +437,13 @@
             return;
         }
 
+        // мягкий античит: один и тот же seed + игра → один показ роли за сессию вкладки
         const sessionKey = "finkizet_seed_used_" + modeKey + "_" + seedStr;
         if (sessionStorage.getItem(sessionKey)) {
             showError(t.errors.cheat);
             return;
         }
         sessionStorage.setItem(sessionKey, "1");
-
 
         let seedNum = Number(seedStr);
         if (!Number.isFinite(seedNum)) {
@@ -452,6 +477,7 @@
         resultCard.style.display = "block";
     });
 
+    // стартуем на русском
     applyLang("ru");
 </script>
 </body>
