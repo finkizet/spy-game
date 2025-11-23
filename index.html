@@ -238,7 +238,7 @@
                 playersMin: "Количество игроков должно быть не меньше 2.",
                 playersMax: "Максимальное количество игроков — 10.",
                 badIndex: "Номер игрока должен быть от 1 до количества игроков.",
-                cheat: "Играем честно! Не подсматривай!"
+                cheat: "Играем честно! Не подсматривай! Если вы считаете это ошибкой, выберите другой код."
             },
             spyText(modeTitle, label) {
                 return `Ты шпион в игре ${modeTitle}. Ты НЕ знаешь, какой ${label} выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.`;
@@ -271,7 +271,7 @@
                 playersMin: "Number of players must be at least 2.",
                 playersMax: "Maximum number of players is 10.",
                 badIndex: "Player number must be between 1 and the total number of players.",
-                cheat: "Play fair! Don't peek!"
+                cheat: "Play fair! Don't peek! If you think this is a mistake, choose another seed."
             },
             spyText(modeTitle, label) {
                 return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone else got. Listen to how they describe it and try not to get caught.`;
@@ -412,13 +412,13 @@
             return;
         }
 
-        // мягкий античит: один seed → один показ роли за сессию вкладки
-        const sessionKey = "finkizet_seed_used_" + seedStr;
+        const sessionKey = "finkizet_seed_used_" + modeKey + "_" + seedStr;
         if (sessionStorage.getItem(sessionKey)) {
             showError(t.errors.cheat);
             return;
         }
         sessionStorage.setItem(sessionKey, "1");
+
 
         let seedNum = Number(seedStr);
         if (!Number.isFinite(seedNum)) {
