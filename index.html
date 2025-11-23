@@ -5,9 +5,7 @@
     <title>finkizet game</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -77,13 +75,8 @@
             margin-top: 4px;
         }
 
-        button:hover {
-            filter: brightness(1.05);
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
+        button:hover { filter: brightness(1.05); }
+        button:active { transform: translateY(1px); }
 
         .help {
             font-size: 0.8rem;
@@ -131,209 +124,159 @@
 </head>
 <body>
 <div class="container">
-    <h1>Шпион — мультиигра</h1>
-    <div class="subtitle">
-        Выберите игру, договоритесь об одном <b>коде</b> и количестве игроков (максимум 10),
-        затем каждый вводит свой номер игрока и получает роль.
-    </div>
+    <h1 id="heading"></h1>
+    <div id="subtitle" class="subtitle"></div>
 
-    <label for="gameMode">Игра</label>
-    <select id="gameMode">
-        <option value="clash">Clash Royale</option>
-        <option value="dota">Dota 2</option>
+    <label for="langSelect" id="labelLang"></label>
+    <select id="langSelect">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
     </select>
 
-    <div class="help">
-        От выбора игры зависит список карт/героев и формулировки.
-    </div>
+    <div id="helpLang" class="help"></div>
 
-    <label for="seedInput">Общий код / seed</label>
-    <input id="seedInput" type="text" placeholder="Например: 548129 или 'пудж42'" />
+    <label for="gameMode" id="labelGame"></label>
+    <select id="gameMode">
+        <option value="clash"></option>
+        <option value="dota"></option>
+    </select>
 
-    <div class="help">
-        Все игроки должны ввести <b>один и тот же</b> код. Можно число или слово.
-    </div>
+    <div id="helpGameMode" class="help"></div>
 
-    <label for="playersInput">Количество игроков</label>
+    <label for="seedInput" id="labelSeed"></label>
+    <input id="seedInput" type="text" />
+
+    <div id="helpSeed" class="help"></div>
+
+    <label for="playersInput" id="labelPlayers"></label>
     <input id="playersInput" type="number" min="2" max="10" value="4" />
 
-    <div class="help">
-        <b>Максимум — 10 игроков.</b> По умолчанию будет 1 шпион, остальные получают одинаковый объект.
-    </div>
+    <div id="helpPlayers" class="help"></div>
 
-    <label for="playerIndexInput">Твой номер игрока</label>
+    <label for="playerIndexInput" id="labelPlayerIndex"></label>
     <input id="playerIndexInput" type="number" min="1" max="10" value="1" />
 
-    <div class="help">
-        Каждый выбирает свой уникальный номер.  
-        <b>Номер не должен превышать количество игроков.</b>
-    </div>
+    <div id="helpPlayerIndex" class="help"></div>
 
-    <button id="showRoleBtn">Показать мою роль</button>
+    <button id="showRoleBtn"></button>
 
     <div id="result" class="result-card" style="display:none;">
-        <div class="result-title">Твоя роль:</div>
+        <div id="resultTitle" class="result-title"></div>
         <div id="roleText" class="role"></div>
         <div id="extraText" class="small"></div>
     </div>
 
     <div id="errorBox" class="error" style="display:none;"></div>
 
-    <div class="small">
-        ⚠ Если кто-то введёт другой код или количество игроков - у него будут другие результаты.
-        Для честной игры все должны внимательно вводить данные и не подсматривать.
-    </div>
+    <div id="footerText" class="small"></div>
 </div>
 
 <script>
     const gameModes = {
         clash: {
-            title: "Clash Royale",
+            title: { ru: "Clash Royale", en: "Clash Royale" },
             items: [
-                "Рыцарь",
-                "Лучницы",
-                "Банда гоблинов",
-                "Гигант",
-                "П.Е.К.К.А",
-                "Мини-пекка",
-                "Валькирия",
-                "Ледяной колдун",
-                "Маг",
-                "Принц"
+                { id: "Knight", ru: "Рыцарь" },
+                { id: "Archers", ru: "Лучницы" },
+                { id: "Goblin Gang", ru: "Банда гоблинов" },
+                { id: "Giant", ru: "Гигант" },
+                { id: "P.E.K.K.A", ru: "П.Е.К.К.А" },
+                { id: "Mini P.E.K.K.A", ru: "Мини-пекка" },
+                { id: "Valkyrie", ru: "Валькирия" },
+                { id: "Ice Wizard", ru: "Ледяной колдун" },
+                { id: "Wizard", ru: "Маг" },
+                { id: "Prince", ru: "Принц" }
             ],
-            label: "карта из Clash Royale"
+            label: {
+                ru: "карта из Clash Royale",
+                en: "card from Clash Royale"
+            }
         },
         dota: {
-            title: "Dota 2",
+            title: { ru: "Dota 2", en: "Dota 2" },
             items: [
-                "Abaddon",
-                "Alchemist",
-                "Ancient Apparition",
-                "Anti-Mage",
-                "Arc Warden",
-                "Axe",
-                "Bane",
-                "Batrider",
-                "Beastmaster",
-                "Bloodseeker",
-                "Bounty Hunter",
-                "Brewmaster",
-                "Bristleback",
-                "Broodmother",
-                "Centaur Warrunner",
-                "Chaos Knight",
-                "Chen",
-                "Clinkz",
-                "Clockwerk",
-                "Crystal Maiden",
-                "Dark Seer",
-                "Dark Willow",
-                "Dawnbreaker",
-                "Dazzle",
-                "Death Prophet",
-                "Disruptor",
-                "Doom",
-                "Dragon Knight",
-                "Drow Ranger",
-                "Earth Spirit",
-                "Earthshaker",
-                "Elder Titan",
-                "Ember Spirit",
-                "Enchantress",
-                "Enigma",
-                "Faceless Void",
-                "Grimstroke",
-                "Gyrocopter",
-                "Hoodwink",
-                "Huskar",
-                "Invoker",
-                "Io",
-                "Jakiro",
-                "Juggernaut",
-                "Keeper of the Light",
-                "Kez",
-                "Kunkka",
-                "Legion Commander",
-                "Leshrac",
-                "Lich",
-                "Lifestealer",
-                "Lina",
-                "Lion",
-                "Lone Druid",
-                "Luna",
-                "Lycan",
-                "Magnus",
-                "Marci",
-                "Mars",
-                "Medusa",
-                "Meepo",
-                "Mirana",
-                "Monkey King",
-                "Morphling",
-                "Muerta",
-                "Naga Siren",
-                "Nature's Prophet",
-                "Necrophos",
-                "Night Stalker",
-                "Nyx Assassin",
-                "Ogre Magi",
-                "Omniknight",
-                "Oracle",
-                "Outworld Destroyer",
-                "Pangolier",
-                "Phantom Assassin",
-                "Phantom Lancer",
-                "Phoenix",
-                "Primal Beast",
-                "Puck",
-                "Pudge",
-                "Pugna",
-                "Queen of Pain",
-                "Razor",
-                "Riki",
-                "Ringmaster",
-                "Rubick",
-                "Sand King",
-                "Shadow Demon",
-                "Shadow Fiend",
-                "Shadow Shaman",
-                "Silencer",
-                "Skywrath Mage",
-                "Slardar",
-                "Slark",
-                "Snapfire",
-                "Sniper",
-                "Spectre",
-                "Spirit Breaker",
-                "Storm Spirit",
-                "Sven",
-                "Techies",
-                "Templar Assassin",
-                "Terrorblade",
-                "Tidehunter",
-                "Timbersaw",
-                "Tinker",
-                "Tiny",
-                "Treant Protector",
-                "Troll Warlord",
-                "Tusk",
-                "Underlord",
-                "Undying",
-                "Ursa",
-                "Vengeful Spirit",
-                "Venomancer",
-                "Viper",
-                "Visage",
-                "Void Spirit",
-                "Warlock",
-                "Weaver",
-                "Windranger",
-                "Winter Wyvern",
-                "Witch Doctor",
-                "Wraith King",
-                "Zeus"
+                { id: "Pudge" },
+                { id: "Invoker" },
+                { id: "Juggernaut" },
+                { id: "Crystal Maiden" },
+                { id: "Phantom Assassin" },
+                { id: "Axe" },
+                { id: "Shadow Fiend" },
+                { id: "Lina" },
+                { id: "Lion" },
+                { id: "Earthshaker" }
             ],
-            label: "герой из Dota 2"
+            label: {
+                ru: "герой из Dota 2",
+                en: "hero from Dota 2"
+            }
+        }
+    };
+
+    const i18n = {
+        ru: {
+            pageTitle: "finkizet game",
+            heading: "Шпион — мультиигра",
+            subtitle: "Выберите игру, договоритесь об одном коде и количестве игроков (максимум 10), затем каждый вводит свой номер игрока и получает роль.",
+            labelLang: "Язык / Language",
+            helpLang: "Выберите язык интерфейса. Имена героев Dota 2 остаются на английском.",
+            labelGame: "Игра",
+            helpGameMode: "От выбора игры зависит список карт/героев и формулировки.",
+            labelSeed: "Общий код / seed",
+            seedPlaceholder: "Например: 548129 или 'pudge42'",
+            helpSeed: "Все игроки должны ввести один и тот же код. Можно число или слово.",
+            labelPlayers: "Количество игроков",
+            helpPlayers: "Максимум — 10 игроков. Всегда 1 шпион, остальные получают одинаковый объект.",
+            labelPlayerIndex: "Твой номер игрока",
+            helpPlayerIndex: "Каждый выбирает свой уникальный номер. Номер не должен превышать количество игроков.",
+            showButton: "Показать мою роль",
+            resultTitle: "Твоя роль:",
+            footerText: "⚠ Если кто-то введёт другой код или количество игроков — у него будут другие результаты. Для честной игры все должны внимательно вводить данные и не подсматривать.",
+            spyRole: "Шпион",
+            errors: {
+                noSeed: "Введите общий код / seed.",
+                playersMin: "Количество игроков должно быть не меньше 2.",
+                playersMax: "Максимальное количество игроков — 10.",
+                badIndex: "Номер игрока должен быть от 1 до количества игроков."
+            },
+            spyText(modeTitle, label) {
+                return `Ты шпион в игре ${modeTitle}. Ты НЕ знаешь, какой ${label} выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.`;
+            },
+            nonSpyText(modeTitle, label, itemName) {
+                return `Тебе выпал ${label}: "${itemName}". У всех остальных не-шпионов такой же ${label}. Не показывай экран, просто запомни и описывай его так, чтобы шпиону было сложно понять, что именно это за ${label}.`;
+            }
+        },
+        en: {
+            pageTitle: "finkizet game",
+            heading: "Spy — multi game",
+            subtitle: "Choose a game, agree on one shared code and player count (up to 10), then each player enters their number and gets a role.",
+            labelLang: "Language",
+            helpLang: "Choose interface language. Dota 2 hero names stay in English.",
+            labelGame: "Game",
+            helpGameMode: "Game selection changes the list of cards/heroes and phrasing.",
+            labelSeed: "Shared code / seed",
+            seedPlaceholder: "Example: 548129 or 'pudge42'",
+            helpSeed: "All players must enter the same code. It can be a number or a word.",
+            labelPlayers: "Number of players",
+            helpPlayers: "Maximum is 10 players. There is always 1 spy, others get the same object.",
+            labelPlayerIndex: "Your player number",
+            helpPlayerIndex: "Each player chooses a unique number. It must not exceed the number of players.",
+            showButton: "Show my role",
+            resultTitle: "Your role:",
+            footerText: "⚠ If someone enters a different code or player count, they will get different results. For a fair game everyone should type carefully and not peek.",
+            spyRole: "Spy",
+            errors: {
+                noSeed: "Enter the shared code / seed.",
+                playersMin: "Number of players must be at least 2.",
+                playersMax: "Maximum number of players is 10.",
+                badIndex: "Player number must be between 1 and the total number of players."
+            },
+            spyText(modeTitle, label) {
+                return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone else got. Listen to how they describe it and try not to get caught.`;
+            },
+            nonSpyText(modeTitle, label, itemName) {
+                return `You got a ${label}: "${itemName}". All non-spies have the same ${label}. Do not show your screen, just remember it and describe it so the spy cannot easily guess what it is.`;
+            }
         }
     };
 
@@ -367,6 +310,16 @@
         return arr;
     }
 
+    // Берём имя объекта с учётом локализации:
+    // если есть ru/en → берём, иначе → id
+    function getLocalizedName(item, lang) {
+        if (item[lang]) {
+            return item[lang];
+        }
+        return item.id;
+    }
+
+    const langSelect = document.getElementById("langSelect");
     const gameModeSelect = document.getElementById("gameMode");
     const seedInput = document.getElementById("seedInput");
     const playersInput = document.getElementById("playersInput");
@@ -377,9 +330,64 @@
     const extraText = document.getElementById("extraText");
     const errorBox = document.getElementById("errorBox");
 
+    const headingEl = document.getElementById("heading");
+    const subtitleEl = document.getElementById("subtitle");
+    const labelLangEl = document.getElementById("labelLang");
+    const helpLangEl = document.getElementById("helpLang");
+    const labelGameEl = document.getElementById("labelGame");
+    const helpGameModeEl = document.getElementById("helpGameMode");
+    const labelSeedEl = document.getElementById("labelSeed");
+    const helpSeedEl = document.getElementById("helpSeed");
+    const labelPlayersEl = document.getElementById("labelPlayers");
+    const helpPlayersEl = document.getElementById("helpPlayers");
+    const labelPlayerIndexEl = document.getElementById("labelPlayerIndex");
+    const helpPlayerIndexEl = document.getElementById("helpPlayerIndex");
+    const resultTitleEl = document.getElementById("resultTitle");
+    const footerTextEl = document.getElementById("footerText");
+
+    function applyLang(lang) {
+        const t = i18n[lang];
+        document.title = t.pageTitle;
+        headingEl.textContent = t.heading;
+        subtitleEl.textContent = t.subtitle;
+        labelLangEl.textContent = t.labelLang;
+        helpLangEl.textContent = t.helpLang;
+        labelGameEl.textContent = t.labelGame;
+        helpGameModeEl.textContent = t.helpGameMode;
+        labelSeedEl.textContent = t.labelSeed;
+        seedInput.placeholder = t.seedPlaceholder;
+        helpSeedEl.textContent = t.helpSeed;
+        labelPlayersEl.textContent = t.labelPlayers;
+        helpPlayersEl.textContent = t.helpPlayers;
+        labelPlayerIndexEl.textContent = t.labelPlayerIndex;
+        helpPlayerIndexEl.textContent = t.helpPlayerIndex;
+        showRoleBtn.textContent = t.showButton;
+        resultTitleEl.textContent = t.resultTitle;
+        footerTextEl.textContent = t.footerText;
+
+        const clashOption = gameModeSelect.querySelector('option[value="clash"]');
+        const dotaOption = gameModeSelect.querySelector('option[value="dota"]');
+        clashOption.textContent = gameModes.clash.title[lang];
+        dotaOption.textContent = gameModes.dota.title[lang];
+    }
+
+    langSelect.addEventListener("change", () => {
+        applyLang(langSelect.value);
+        errorBox.style.display = "none";
+        resultCard.style.display = "none";
+    });
+
+    function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
+    }
+
     showRoleBtn.addEventListener("click", function () {
         errorBox.style.display = "none";
         resultCard.style.display = "none";
+
+        const lang = langSelect.value;
+        const t = i18n[lang];
 
         const seedStr = seedInput.value.trim();
         const playersCount = Number(playersInput.value);
@@ -388,19 +396,19 @@
         const mode = gameModes[modeKey];
 
         if (!seedStr) {
-            showError("Введите общий код / seed.");
+            showError(t.errors.noSeed);
             return;
         }
         if (!Number.isFinite(playersCount) || playersCount < 2) {
-            showError("Количество игроков должно быть не меньше 2.");
+            showError(t.errors.playersMin);
             return;
         }
         if (playersCount > 10) {
-            showError("Максимальное количество игроков — 10.");
+            showError(t.errors.playersMax);
             return;
         }
         if (!Number.isFinite(playerIndex) || playerIndex < 1 || playerIndex > playersCount) {
-            showError("Номер игрока должен быть от 1 до количества игроков.");
+            showError(t.errors.badIndex);
             return;
         }
 
@@ -419,31 +427,24 @@
         for (let i = 0; i < playersCount - 1; i++) {
             roles.push(sharedItem);
         }
-        roles.push("Шпион");
+        roles.push("spy");
 
         const shuffledRoles = shuffleWithSeed(roles, seedNum + 2);
         const myRole = shuffledRoles[playerIndex - 1];
 
-        roleText.textContent = myRole;
-
-        if (myRole === "Шпион") {
-            extraText.textContent =
-                "Ты шпион в игре " + mode.title + ". Ты НЕ знаешь, какой " + mode.label +
-                " выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.";
+        if (myRole === "spy") {
+            roleText.textContent = t.spyRole;
+            extraText.textContent = t.spyText(mode.title[lang], mode.label[lang]);
         } else {
-            extraText.textContent =
-                "Тебе выпал " + mode.label + ": \"" + myRole + "\". " +
-                "У всех остальных не-шпионов такой же " + mode.label + ". " +
-                "Не показывай экран, просто запомни и описывай его так, чтобы шпиону было сложно понять, что именно это за " + mode.label + ".";
+            const itemName = getLocalizedName(myRole, lang);
+            roleText.textContent = itemName;
+            extraText.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], itemName);
         }
 
         resultCard.style.display = "block";
     });
 
-    function showError(msg) {
-        errorBox.textContent = msg;
-        errorBox.style.display = "block";
-    }
+    applyLang("ru");
 </script>
 </body>
 </html>
