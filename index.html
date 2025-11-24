@@ -174,51 +174,6 @@
     </select>
 </div>
 
-<!-- Панель версии -->
-<div id="versionPanel">
-    <div id="versionText">beta 1.5.2<br>last update: 24.11.2025</div>
-    <a id="madeBy" href="https://github.com/finkizet" target="_blank">made by finkizet</a>
-</div>
-
-#versionPanel {
-    position: absolute;
-    left: 16px;
-    top: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 12px;
-    background: rgba(2, 6, 23, 0.6);
-    border: 1px solid #374151;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    z-index: 9;
-}
-
-#versionText {
-    color: #9ca3af;
-    line-height: 1.2rem;
-}
-
-#madeBy {
-    color: #60a5fa;
-    text-decoration: none;
-    font-size: 0.75rem;
-}
-
-#madeBy:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 600px) {
-    #versionPanel {
-        position: static;
-        margin: 12px auto;
-        text-align: center;
-        width: fit-content;
-    }
-}
-
 <div class="container">
     <h1 id="heading"></h1>
     <div id="subtitle" class="subtitle"></div>
