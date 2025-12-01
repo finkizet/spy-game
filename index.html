@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>finkizet game</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         * { box-sizing: border-box; }
 
@@ -910,6 +911,133 @@ const gameModes = {
 
     // Start with Russian
     applyLang("ru");
+
+    // ---------- Socket client integration ----------
+const SOCKET_URL = SERVER_BASE; // например https://spy-game-clr8.onrender.com
+const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+
+// nickname handling (localStorage)
+const NICK_KEY = 'finkizet_nick';
+let localNick = localStorage.getItem(NICK_KEY) || '';
+if (!localNick) {
+  // ask user for nick (simple prompt) — ты можешь заменить на UI input
+  localNick = prompt('Enter your nickname', 'Player') || 'Player';
+  localStorage.setItem(NICK_KEY, localNick);
+}
+socket.emit('set_nick', localNick);
+socket.on('nick_set', (nick) => {
+  localNick = nick;
+  localStorage.setItem(NICK_KEY, nick);
+});
+
+// helper UI refs (создай/переиспользуй свои элементы)
+const lobbyListEl = document.createElement('div'); // можно вставить куда хочешь
+// but we'll render into container: append after joinLobby input
+document.getElementById('joinLobbyInput').after(lobbyListEl);
+
+function renderLobbyState(state) {
+  if (!state) { lobbyListEl.innerHTML = ''; return; }
+  const playersHtml = state.players
+    .sort((a,b)=>a.index-b.index)
+    .map(p => {
+      const isAdmin = (p.socketId === state.adminSocketId);
+      return `<div class="lobby-player">${p.index}. ${escapeHtml(p.nick)} ${isAdmin?'<b>*</b>':''}</div>`;
+    }).join('');
+  lobbyListEl.innerHTML = `
+    <div class="lobby-box">
+      <div><b>Lobby</b> ${state.code} — ${state.players.length}/${state.playersCount}</div>
+      <div>${playersHtml}</div>
+    </div>
+  `;
+}
+
+// escape helper
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+// Create lobby via socket (button handler hookup)
+createLobbyBtn.addEventListener('click', () => {
+  const modeKey = gameModeSelect.value;
+  const playersCount = Number(playersInput.value) || 4;
+  socket.emit('create_lobby', { gameKey: modeKey, playersCount }, (resp) => {
+    if (resp.error) { alert(resp.error); return; }
+    // save your own lobby code locally
+    localStorage.setItem('lastLobbyId', resp.code);
+    alert('Lobby created: ' + resp.code);
+    // auto-join UI: call get_lobby to fetch state
+    socket.emit('get_lobby', { code: resp.code }, (r) => {
+      if (r.ok) renderLobbyState(r.lobby);
+    });
+  });
+});
+
+// join lobby by code
+joinLobbyBtn.addEventListener('click', () => {
+  const code = (joinLobbyInput.value||'').trim().toUpperCase();
+  if (!code) { alert('Enter lobby code'); return; }
+  const index = Number(playerIndexInput.value) || 1;
+  socket.emit('join_lobby', { code, index }, (resp) => {
+    if (resp.error) { alert(resp.error); return; }
+    // store 'we joined' mapping to be able to get private messages
+    localStorage.setItem('lastLobbyId', resp.code);
+    localStorage.setItem('lastIndex_' + resp.code, resp.yourIndex);
+    // after join, ask server for lobby state
+    socket.emit('get_lobby', { code: resp.code }, (r) => {
+      if (r.ok) renderLobbyState(r.lobby);
+    });
+  });
+});
+
+// listen for lobby updates broadcast
+socket.on('lobby_update', (state) => {
+  renderLobbyState(state);
+});
+
+// private role message
+socket.on('role_assigned', ({ role, index, sharedLabel }) => {
+  // show role to user — можно использовать существующий UI resultCard
+  if (role && (role.id === 'spy' || role === 'spy')) {
+    roleText.textContent = i18n[langSelect.value].spyRole;
+    extraText.textContent = i18n[langSelect.value].spyText(gameModes[sharedLabel].title[langSelect.value], gameModes[sharedLabel].label[langSelect.value]);
+  } else {
+    const name = getLocalizedName(role, langSelect.value);
+    roleText.textContent = name;
+    extraText.textContent = i18n[langSelect.value].nonSpyText(gameModes[sharedLabel].title[langSelect.value], gameModes[sharedLabel].label[langSelect.value], name);
+  }
+  resultCard.style.display = 'block';
+});
+
+// round started/ended notifications
+socket.on('round_started', (state) => {
+  renderLobbyState(state);
+});
+socket.on('round_ended', (state) => {
+  renderLobbyState(state);
+});
+
+// handle kicked
+socket.on('kicked', ({ reason }) => {
+  alert('You were kicked: ' + (reason||''));
+  // optionally reload or redirect
+});
+
+// utility: admin controls in client (simple prompt flows)
+function startRoundClient() {
+  const code = localStorage.getItem('lastLobbyId');
+  if (!code) return alert('No lobby code stored');
+  const spyCount = 1;
+  socket.emit('start_round', { code, spyCount }, (r) => {
+    if (r && r.error) alert(r.error);
+  });
+}
+function endRoundClient() {
+  const code = localStorage.getItem('lastLobbyId');
+  socket.emit('end_round', { code }, (r) => { if (r && r.error) alert(r.error); });
+}
+function kickClient(index) {
+  const code = localStorage.getItem('lastLobbyId');
+  socket.emit('kick', { code, targetIndex: index }, (r) => { if (r && r.error) alert(r.error); });
+}
+
 </script>
 </body>
 </html>
