@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,279 +7,332 @@
 
 <style>
     body {
-        background: #020617;
-        color: #e5e7eb;
-        font-family: Arial, sans-serif;
-        padding: 20px;
-    }
-
-    .flex { display: flex; gap: 12px; align-items: center; }
-    .hidden { display: none !important; }
-
-    #topBar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    /* Language selector */
-    #langSelectTop {
-        padding: 10px 32px 10px 10px;
-        appearance: none;
-        background-color: #020617;
-        border-radius: 8px;
-        color: #e5e7eb;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23e5e7eb' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-    }
-
-    /* Lobby UI */
-    #lobbyBox {
-        padding: 15px;
         background: #0f172a;
-        border-radius: 10px;
-        margin-top: 20px;
+        font-family: Arial, sans-serif;
+        color: #f8fafc;
+        margin: 0;
+        padding: 0;
+        text-align: center;
     }
 
-    #playersList div {
-        padding: 6px;
-        border-bottom: 1px solid #1e293b;
+    h1 { margin-top: 20px; }
+
+    .section {
+        margin: 25px auto;
+        padding: 20px;
+        width: 90%;
+        max-width: 600px;
+        background: #1e293b;
+        border-radius: 12px;
+        box-shadow: 0 0 12px #0006;
     }
 
-    #adminActions button {
-        margin-right: 10px;
+    select, input {
+        padding: 10px;
         margin-top: 10px;
+        background: #020617;
+        border: 1px solid #334155;
+        color: #f1f5f9;
+        border-radius: 8px;
     }
 
     button {
-        padding: 10px 16px;
+        padding: 10px 18px;
+        margin-top: 10px;
+        background: #334155;
         border: none;
         border-radius: 8px;
-        background: #1e40af;
         color: white;
         cursor: pointer;
     }
+
+    #lobbyBox {
+        margin-top: 20px;
+        padding: 15px;
+        background: #0f1a30;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        display: none;
+    }
+
+    #playersList {
+        text-align: left;
+        padding-left: 20px;
+        margin-top: 10px;
+        white-space: pre-line;
+    }
+
+    #startGameBtn { display: none; }
 </style>
 
 </head>
 <body>
 
-<div id="topBar">
-    <img src="language_icon.svg" width="26" height="26">
+<h1>Spy Game</h1>
+
+<!-- ---------- ЯЗЫК ---------- -->
+<div>
     <select id="langSelectTop">
         <option value="ru">RU</option>
         <option value="en">EN</option>
     </select>
 </div>
 
-<h1 id="title">Spy Game</h1>
+<!-- ---------- РЕЖИМ: ЛОКАЛЬНАЯ ИГРА ---------- -->
+<div class="section">
+    <h2 id="localTitle">Локальная игра (без лобби)</h2>
 
-<!-- Nickname Setup -->
-<div id="nickSetup">
-    <h3>Введите никнейм:</h3>
-    <input id="nicknameInput" placeholder="Ваш ник" />
-    <button onclick="saveNickname()">OK</button>
+    <label id="labelGame" for="gameMode"></label>
+    <select id="gameMode">
+        <option value="clash"></option>
+        <option value="dota"></option>
+    </select>
+
+    <br><br>
+
+    <label id="labelSeed" for="seedInput"></label>
+    <input id="seedInput" placeholder="123456" />
+
+    <button id="localPlayBtn"></button>
+    <p id="localResult"></p>
 </div>
 
-<!-- Lobby Actions -->
-<div id="lobbyControls" class="hidden">
-    <button onclick="createLobby()">Создать лобби</button>
-    <input id="joinCodeInput" placeholder="Код лобби">
-    <button onclick="joinLobby()">Войти</button>
-</div>
+<!-- ---------- РЕЖИМ: ОНЛАЙН ЛОББИ ---------- -->
+<div class="section">
+    <h2 id="onlineTitle">Онлайн-лобби</h2>
 
-<!-- Lobby Box -->
-<div id="lobbyBox" class="hidden">
-    <h2>Лобби <span id="lobbyId"></span></h2>
-
-    <div>Игроки (<span id="playerCount">0</span>/10):</div>
-    <div id="playersList"></div>
-
-    <div id="adminActions" class="hidden">
-        <button onclick="startRound()">Начать раунд</button>
-        <button onclick="endLobby()">Распустить лобби</button>
+    <div id="nicknameBlock">
+        <label id="labelNick">Ваш ник:</label><br>
+        <input id="nickInput" placeholder="Player123" />
+        <button id="saveNickBtn">Сохранить ник</button>
     </div>
 
-    <div style="margin-top: 20px;">
-        <button onclick="leaveLobby()">Покинуть лобби</button>
+    <hr>
+
+    <button id="createLobbyBtn">Создать лобби</button>
+    <br>
+    <input id="joinLobbyInput" placeholder="Код лобби" style="margin-top:10px;">
+    <button id="joinLobbyBtn">Войти</button>
+
+    <div id="lobbyBox">
+        <h3 id="lobbyTitle">Лобби</h3>
+        <p id="lobbyIdText"></p>
+        <p id="playerCount"></p>
+
+        <div id="playersList"></div>
+
+        <button id="startGameBtn">Начать игру</button>
+        <button id="showRoleBtn">Показать мою роль</button>
+        <p id="roleResult"></p>
     </div>
 </div>
 
 
-<!-- Game Result -->
-<div id="roleBox" class="hidden">
-    <h2 id="roleText"></h2>
-    <button onclick="backToLobby()">Назад в лобби</button>
-</div>
-
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
+// ----------------------- ЛОКАЛИЗАЦИЯ -----------------------
+const i18n = {
+    ru: {
+        localTitle: "Локальная игра (без лобби)",
+        labelGame: "Выберите игру:",
+        labelSeed: "Введите общий код:",
+        localPlayBtn: "Показать роль",
+        onlineTitle: "Онлайн-лобби",
+        labelNick: "Ваш ник:",
+        createLobby: "Создать лобби",
+        joinLobby: "Войти",
+    },
+    en: {
+        localTitle: "Local game (offline)",
+        labelGame: "Choose game:",
+        labelSeed: "Enter shared seed:",
+        localPlayBtn: "Show role",
+        onlineTitle: "Online Lobby",
+        labelNick: "Your nickname:",
+        createLobby: "Create lobby",
+        joinLobby: "Join",
+    }
+};
 
-//////////////////////////////////////////////////////
-// 1. CONFIG
-//////////////////////////////////////////////////////
-const SERVER_BASE = "https://spy-game-clr8.onrender.com";
+let lang = localStorage.getItem("lang") || "ru";
+document.getElementById("langSelectTop").value = lang;
 
-const socket = io(SERVER_BASE);
+function applyLang() {
+    const t = i18n[lang];
+    document.getElementById("localTitle").innerText = t.localTitle;
+    document.getElementById("labelGame").innerText = t.labelGame;
+    document.getElementById("labelSeed").innerText = t.labelSeed;
+    document.getElementById("localPlayBtn").innerText = t.localPlayBtn;
+    document.getElementById("onlineTitle").innerText = t.onlineTitle;
+    document.getElementById("labelNick").innerText = t.labelNick;
 
-let nickname = "";
-let lobbyId = "";
-let isAdmin = false;
+    document.getElementById("createLobbyBtn").innerText = t.createLobby;
+    document.getElementById("joinLobbyBtn").innerText = t.joinLobby;
+}
+applyLang();
 
+document.getElementById("langSelectTop").onchange = e => {
+    lang = e.target.value;
+    localStorage.setItem("lang", lang);
+    applyLang();
+};
 
-//////////////////////////////////////////////////////
-// 2. GAME MODES (коротко, как просил)
-//////////////////////////////////////////////////////
+// ----------------------- GAME MODES (СОКРАЩЁННЫЕ) -----------------------
 const gameModes = {
     clash: {
         title: { ru: "Clash Royale", en: "Clash Royale" },
         items: [
             { id: "Knight", ru: "Рыцарь" },
-            { id: "Archers", ru: "Лучницы" }
-            // … остальные карты ты уже добавил у себя
+            { id: "Archers", ru: "Лучницы" },
+            { id: "Giant", ru: "Гигант" }
         ]
     },
     dota: {
         title: { ru: "Dota 2", en: "Dota 2" },
         items: [
             { id: "Pudge", ru: "Пудж" },
-            { id: "Invoker", ru: "Инвокер" }
-            // … остальное в твоём массиве
+            { id: "Invoker", ru: "Инвокер" },
+            { id: "Axe", ru: "Топор" }
         ]
     }
 };
 
+function fillGameModeNames() {
+    const gm = document.getElementById("gameMode").children;
+    gm[0].innerText = gameModes.clash.title[lang];
+    gm[1].innerText = gameModes.dota.title[lang];
+}
+fillGameModeNames();
 
-//////////////////////////////////////////////////////
-// 3. НИКНЕЙМ
-//////////////////////////////////////////////////////
-function saveNickname() {
-    nickname = document.getElementById("nicknameInput").value.trim();
+document.getElementById("langSelectTop").addEventListener("change", fillGameModeNames);
 
-    if (!nickname) {
-        alert("Введите ник!");
-        return;
-    }
+// ----------------------- ЛОКАЛЬНАЯ ИГРА -----------------------
+document.getElementById("localPlayBtn").onclick = () => {
+    const seed = document.getElementById("seedInput").value.trim();
+    const game = document.getElementById("gameMode").value;
+    if (!seed) return;
 
-    localStorage.setItem("spy_nickname", nickname);
+    const arr = gameModes[game].items;
+    const spyIndex = Math.abs(hash(seed)) % arr.length;
 
-    document.getElementById("nickSetup").classList.add("hidden");
-    document.getElementById("lobbyControls").classList.remove("hidden");
+    const role = arr[spyIndex].id;
+
+    document.getElementById("localResult").innerText =
+        lang === "ru" ? ("Вы: " + role) : ("You: " + role);
+};
+
+function hash(str) {
+    let h = 0;
+    for (let c of str) h = (h*31 + c.charCodeAt(0)) | 0;
+    return h;
 }
 
-(function loadNick() {
-    const stored = localStorage.getItem("spy_nickname");
-    if (stored) {
-        nickname = stored;
-        document.getElementById("nickSetup").classList.add("hidden");
-        document.getElementById("lobbyControls").classList.remove("hidden");
-    }
-})();
+// ----------------------- ОНЛАЙН ЛОББИ -----------------------
+const SERVER = "https://spy-game-clr8.onrender.com"; // твой Render сервер
 
+let nickname = localStorage.getItem("nickname") || "";
+document.getElementById("nickInput").value = nickname;
 
-//////////////////////////////////////////////////////
-// 4. SOCKET EVENTS
-//////////////////////////////////////////////////////
-socket.on("lobby_created", data => {
-    joinLobbyUI(data.lobbyId, true);
-});
+document.getElementById("saveNickBtn").onclick = () => {
+    nickname = document.getElementById("nickInput").value.trim();
+    if (nickname.length < 2) return;
+    localStorage.setItem("nickname", nickname);
+};
 
-socket.on("lobby_joined", data => {
-    joinLobbyUI(data.lobbyId, false);
-});
+let lobbyId = null;
+let lobbyToken = null;
 
-socket.on("update_players", players => {
-    updateLobbyPlayers(players);
-});
+// Создать лобби
+document.getElementById("createLobbyBtn").onclick = async () => {
+    if (!nickname) return;
 
-socket.on("round_started", role => {
-    showRole(role);
-});
-
-socket.on("lobby_closed", () => {
-    alert("Лобби было распущено");
-    location.reload();
-});
-
-
-//////////////////////////////////////////////////////
-// 5. LOBBY ACTIONS
-//////////////////////////////////////////////////////
-function createLobby() {
-    socket.emit("create_lobby", { nickname });
-}
-
-function joinLobby() {
-    const code = document.getElementById("joinCodeInput").value.trim();
-    if (!code) return alert("Введите код");
-
-    socket.emit("join_lobby", { lobbyId: code, nickname });
-}
-
-function leaveLobby() {
-    socket.emit("leave_lobby", { lobbyId });
-    location.reload();
-}
-
-
-//////////////////////////////////////////////////////
-// 6. UI UPDATES
-//////////////////////////////////////////////////////
-function joinLobbyUI(id, adminFlag) {
-    lobbyId = id;
-    isAdmin = adminFlag;
-
-    document.getElementById("lobbyId").innerText = id;
-
-    document.getElementById("lobbyControls").classList.add("hidden");
-    document.getElementById("lobbyBox").classList.remove("hidden");
-
-    if (adminFlag) {
-        document.getElementById("adminActions").classList.remove("hidden");
-    }
-}
-
-function updateLobbyPlayers(players) {
-    const list = document.getElementById("playersList");
-    list.innerHTML = "";
-
-    players.forEach(p => {
-        const div = document.createElement("div");
-        div.textContent = p.nickname + (p.admin ? " ★" : "");
-        list.appendChild(div);
+    const res = await fetch(SERVER + "/lobby/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname })
     });
 
-    document.getElementById("playerCount").innerText = players.length;
+    const data = await res.json();
+    lobbyId = data.lobbyId;
+    lobbyToken = data.token;
+
+    localStorage.setItem("lastLobbyId", lobbyId);
+    localStorage.setItem("lobby_token_" + lobbyId, lobbyToken);
+
+    showLobbyUI();
+    connectWS();
+};
+
+// Войти в лобби
+document.getElementById("joinLobbyBtn").onclick = async () => {
+    const code = document.getElementById("joinLobbyInput").value.trim();
+    if (!code || !nickname) return;
+
+    const res = await fetch(SERVER + "/lobby/" + code + "/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname })
+    });
+
+    const data = await res.json();
+    if (!data.ok) return;
+
+    lobbyId = code;
+    lobbyToken = data.token;
+
+    localStorage.setItem("lastLobbyId", lobbyId);
+    localStorage.setItem("lobby_token_" + lobbyId, lobbyToken);
+
+    showLobbyUI();
+    connectWS();
+};
+
+// Показ UI
+function showLobbyUI() {
+    document.getElementById("lobbyBox").style.display = "block";
+    document.getElementById("lobbyIdText").innerText = "Код лобби: " + lobbyId;
 }
 
+// WebSocket
+let ws = null;
+function connectWS() {
+    ws = new WebSocket(SERVER.replace("https", "wss") + "/ws/" + lobbyId + "/" + lobbyToken);
 
-//////////////////////////////////////////////////////
-// 7. GAME ROUND
-//////////////////////////////////////////////////////
-function startRound() {
-    socket.emit("start_round", { lobbyId });
+    ws.onmessage = ev => {
+        const msg = JSON.parse(ev.data);
+
+        if (msg.type === "players") {
+            updatePlayers(msg.players);
+        }
+
+        if (msg.type === "role") {
+            document.getElementById("roleResult").innerText =
+                (lang === "ru" ? "Ваша роль: " : "Your role: ") + msg.role;
+        }
+
+        if (msg.type === "admin") {
+            document.getElementById("startGameBtn").style.display = "inline-block";
+        }
+    };
 }
 
-function showRole(role) {
-    document.getElementById("lobbyBox").classList.add("hidden");
-    document.getElementById("roleBox").classList.remove("hidden");
-
-    document.getElementById("roleText").innerText =
-        role === "spy" ? "Вы шпион!" : "Вы: " + role;
+function updatePlayers(players) {
+    document.getElementById("playerCount").innerText = players.length + "/10";
+    let s = "";
+    for (let p of players) {
+        s += p.nickname + (p.isAdmin ? " *" : "") + "\n";
+    }
+    document.getElementById("playersList").innerText = s;
 }
 
-function backToLobby() {
-    document.getElementById("roleBox").classList.add("hidden");
-    document.getElementById("lobbyBox").classList.remove("hidden");
-}
+// Начать раунд
+document.getElementById("startGameBtn").onclick = () => {
+    ws.send(JSON.stringify({ type: "startRound" }));
+};
 
-function endLobby() {
-    socket.emit("end_lobby", { lobbyId });
-}
-
+// Показ роли
+document.getElementById("showRoleBtn").onclick = () => {
+    ws.send(JSON.stringify({ type: "getRole" }));
+};
 </script>
-
 </body>
 </html>
