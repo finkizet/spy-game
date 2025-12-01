@@ -857,10 +857,65 @@ socket.on('nick_set', (nick) => {
   localStorage.setItem(NICK_KEY, nick);
 });
 
+lobbyListEl.className = 'result-card';
+lobbyListEl.style.display = 'none';
+joinLobbyInput.after(lobbyListEl);
+
+// Create lobby
+createLobbyBtn.addEventListener('click', () => {
+  const modeKey = gameModeSelect.value;
+  const playersCount = Number(playersInput.value) || 4;
+  const t = i18n[langSelect.value];
+  
+  if (!modeKey) { showError("Choose a game."); return; }
+  if (playersCount < 2) { showError(t.errors.playersMin); return; }
+  if (playersCount > 10) { showError(t.errors.playersMax); return; }
+  
+  createLobbyBtn.disabled = true;
+  errorBox.style.display = "none";
+  
+  socket.emit('create_lobby', { gameKey: modeKey, playersCount }, (resp) => {
+    createLobbyBtn.disabled = false;
+    if (resp.error) { showError(resp.error); return; }
+    
+    localStorage.setItem('lastLobbyId', resp.code);
+    joinLobbyInput.value = resp.code;
+    alert(t.lobbyCreated(resp.code));
+    
+    socket.emit('get_lobby', { code: resp.code }, (r) => {
+      if (r.ok) renderLobbyState(r.lobby);
+    });
+  });
+});
+
+// Join lobby
+joinLobbyBtn.addEventListener('click', () => {
+  const code = (joinLobbyInput.value||'').trim().toUpperCase();
+  const t = i18n[langSelect.value];
+  if (!code) { showError('Enter lobby code'); return; }
+  
+  const index = Number(playerIndexInput.value);
+  if (!index || index < 1) { showError(t.errors.badIndex); return; }
+  
+  joinLobbyBtn.disabled = true;
+  errorBox.style.display = "none";
+  
+  socket.emit('join_lobby', { code, index }, (resp) => {
+    joinLobbyBtn.disabled = false;
+    if (resp.error) { showError(resp.error); return; }
+    
+    localStorage.setItem('lastLobbyId', resp.code);
+    alert(t.lobbyJoined());
+    
+    socket.emit('get_lobby', { code: resp.code }, (r) => {
+      if (r.ok) renderLobbyState(r.lobby);
+    });
+  });
+});
+
+    
 // helper UI refs (создай/переиспользуй свои элементы)
 const lobbyListEl = document.createElement('div'); // можно вставить куда хочешь
-// but we'll render into container: append after joinLobby input
-document.getElementById('joinLobbyInput').after(lobbyListEl);
 
 function renderLobbyState(state) {
   if (!state) { lobbyListEl.innerHTML = ''; return; }
@@ -881,38 +936,6 @@ function renderLobbyState(state) {
 // escape helper
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-// Create lobby via socket (button handler hookup)
-createLobbyBtn.addEventListener('click', () => {
-  const modeKey = gameModeSelect.value;
-  const playersCount = Number(playersInput.value) || 4;
-  socket.emit('create_lobby', { gameKey: modeKey, playersCount }, (resp) => {
-    if (resp.error) { alert(resp.error); return; }
-    // save your own lobby code locally
-    localStorage.setItem('lastLobbyId', resp.code);
-    alert('Lobby created: ' + resp.code);
-    // auto-join UI: call get_lobby to fetch state
-    socket.emit('get_lobby', { code: resp.code }, (r) => {
-      if (r.ok) renderLobbyState(r.lobby);
-    });
-  });
-});
-
-// join lobby by code
-joinLobbyBtn.addEventListener('click', () => {
-  const code = (joinLobbyInput.value||'').trim().toUpperCase();
-  if (!code) { alert('Enter lobby code'); return; }
-  const index = Number(playerIndexInput.value) || 1;
-  socket.emit('join_lobby', { code, index }, (resp) => {
-    if (resp.error) { alert(resp.error); return; }
-    // store 'we joined' mapping to be able to get private messages
-    localStorage.setItem('lastLobbyId', resp.code);
-    localStorage.setItem('lastIndex_' + resp.code, resp.yourIndex);
-    // after join, ask server for lobby state
-    socket.emit('get_lobby', { code: resp.code }, (r) => {
-      if (r.ok) renderLobbyState(r.lobby);
-    });
-  });
-});
 
 // listen for lobby updates broadcast
 socket.on('lobby_update', (state) => {
