@@ -123,7 +123,7 @@
 
         /* Верхняя панель для выбора языка */
         #langTopBar {
-            position: absolute;
+            position: absolute; /* changed so it scrolls with page */
             top: 16px;
             right: 16px;
             display: flex;
@@ -133,12 +133,28 @@
         }
 
         #langIcon {
-            width: 25px;
-            height: 25px;
+            width: 20px;
+            height: 20px;
             opacity: 0.9;
         }
 
         #langSelectTop {
+            width: auto;
+            min-width: 110px;
+            margin: 0;
+            padding-inline: 10px;
+        }
+
+        @media (max-width: 480px) {
+            #langTopBar {
+                top: 8px;
+                right: 8px;
+            }
+        }
+
+        /* select style (custom arrow) */
+        #langSelectTop,
+        #gameMode {
             width: auto;
             min-width: 110px;
             margin: 0;
@@ -155,12 +171,46 @@
             color: #e5e7eb;
         }
 
-        @media (max-width: 480px) {
-            #langTopBar {
-                top: 8px;
-                right: 8px;
+        /* version panel -->
+        #versionPanel {
+            position: absolute;
+            left: 16px;
+            top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 12px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            z-index: 9;
+        }
+
+        #versionText {
+            color: #9ca3af;
+            line-height: 1.2rem;
+        }
+
+        #madeBy {
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+
+        #madeBy:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            #versionPanel {
+                position: static;
+                margin: 12px auto;
+                text-align: center;
+                width: fit-content;
             }
         }
+
     </style>
 </head>
 <body>
@@ -172,6 +222,12 @@
         <option value="ru">Русский</option>
         <option value="en">English</option>
     </select>
+</div>
+
+<!-- Инфо панель слева / под контент на мобилке -->
+<div id="versionPanel">
+    <div id="versionText">beta 1.5.2<br>last update: 24.11.2025</div>
+    <a id="madeBy" href="https://github.com/finkizet" target="_blank" rel="noopener noreferrer">made by finkizet</a>
 </div>
 
 <div class="container">
@@ -192,7 +248,7 @@
     <div id="helpSeed" class="help"></div>
 
     <label for="playersInput" id="labelPlayers"></label>
-    <input id="playersInput" type="number" min="3" max="10" value="4" />
+    <input id="playersInput" type="number" min="2" max="10" value="4" />
 
     <div id="helpPlayers" class="help"></div>
 
@@ -200,6 +256,17 @@
     <input id="playerIndexInput" type="number" min="1" max="10" value="1" />
 
     <div id="helpPlayerIndex" class="help"></div>
+
+    <!-- Online lobby controls -->
+    <div class="help">
+        <button id="createLobbyBtn" type="button">Создать онлайн-лобби</button>
+    </div>
+
+    <label for="joinLobbyInput" id="labelJoinLobby">Код лобби</label>
+    <input id="joinLobbyInput" type="text" placeholder="Например: ABC123" />
+    <div class="help">
+        <button id="joinLobbyBtn" type="button">Войти в лобби по коду</button>
+    </div>
 
     <button id="showRoleBtn"></button>
 
@@ -215,7 +282,11 @@
 </div>
 
 <script>
-    const gameModes = {
+    // --------- ========== IMPORTANT: set your server URL here AFTER deploying to Render =============
+    const SERVER_BASE = "https://your-render-service.onrender.com";
+    // ================================================================================================
+
+const gameModes = {
         clash: {
             title: { ru: "Clash Royale", en: "Clash Royale" },
             items: [
@@ -497,6 +568,12 @@
             resultTitle: "Твоя роль:",
             footerText: "⚠ Если кто-то введёт другой код или количество игроков — у него будут другие результаты. Для честной игры все должны внимательно вводить данные и не подсматривать.",
             spyRole: "Шпион",
+            createLobbyBtn: "Создать онлайн-лобби",
+            joinLobbyBtn: "Войти в лобби по коду",
+            joinLobbyLabel: "Код лобби",
+            joinLobbyPlaceholder: "Например: ABC123",
+            lobbyCreated: (code) => `Лобби создано: ${code}. Поделитесь кодом.`,
+            lobbyJoined: () => `Вы вошли в лобби. Токен сохранён локально.`,
             errors: {
                 noSeed: "Введите общий код / seed.",
                 playersMin: "Количество игроков должно быть не меньше 2.",
@@ -528,6 +605,12 @@
             resultTitle: "Your role:",
             footerText: "⚠ If someone enters a different code or player count, they will get different results. For a fair game everyone should type carefully and not peek.",
             spyRole: "Spy",
+            createLobbyBtn: "Create online lobby",
+            joinLobbyBtn: "Join lobby by code",
+            joinLobbyLabel: "Lobby code",
+            joinLobbyPlaceholder: "Example: ABC123",
+            lobbyCreated: (code) => `Lobby created: ${code}. Share the code.`,
+            lobbyJoined: () => `You joined the lobby. Token saved locally.`,
             errors: {
                 noSeed: "Enter the shared code / seed.",
                 playersMin: "Number of players must be at least 2.",
@@ -544,6 +627,7 @@
         }
     };
 
+    // Utils (hash + RNG + shuffle)
     function hashStringToInt(str) {
         let h = 0;
         for (let i = 0; i < str.length; i++) {
@@ -575,12 +659,14 @@
     }
 
     function getLocalizedName(item, lang) {
+        if (!item) return '';
         if (item[lang]) {
             return item[lang];
         }
-        return item.id;
+        return item.id || item;
     }
 
+    // DOM refs
     const langSelect = document.getElementById("langSelectTop");
     const gameModeSelect = document.getElementById("gameMode");
     const seedInput = document.getElementById("seedInput");
@@ -591,6 +677,9 @@
     const roleText = document.getElementById("roleText");
     const extraText = document.getElementById("extraText");
     const errorBox = document.getElementById("errorBox");
+    const createLobbyBtn = document.getElementById("createLobbyBtn");
+    const joinLobbyBtn = document.getElementById("joinLobbyBtn");
+    const joinLobbyInput = document.getElementById("joinLobbyInput");
 
     const headingEl = document.getElementById("heading");
     const subtitleEl = document.getElementById("subtitle");
@@ -604,6 +693,7 @@
     const helpPlayerIndexEl = document.getElementById("helpPlayerIndex");
     const resultTitleEl = document.getElementById("resultTitle");
     const footerTextEl = document.getElementById("footerText");
+    const labelJoinLobby = document.getElementById("labelJoinLobby");
 
     function applyLang(lang) {
         const t = i18n[lang];
@@ -623,6 +713,11 @@
         resultTitleEl.textContent = t.resultTitle;
         footerTextEl.textContent = t.footerText;
 
+        labelJoinLobby.textContent = t.joinLobbyLabel;
+        joinLobbyInput.placeholder = t.joinLobbyPlaceholder;
+        createLobbyBtn.textContent = t.createLobbyBtn;
+        joinLobbyBtn.textContent = t.joinLobbyBtn;
+
         const clashOption = gameModeSelect.querySelector('option[value="clash"]');
         const dotaOption = gameModeSelect.querySelector('option[value="dota"]');
         clashOption.textContent = gameModes.clash.title[lang];
@@ -640,7 +735,81 @@
         errorBox.style.display = "block";
     }
 
-    showRoleBtn.addEventListener("click", function () {
+    // ========== Online API helpers ==========
+    async function createLobbyOnline(gameKey, playersCount) {
+      try {
+        const r = await fetch(`${SERVER_BASE}/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameKey, playersCount })
+        });
+        return await r.json();
+      } catch (e) {
+        return { error: 'Network error' };
+      }
+    }
+
+    async function joinLobbyOnline(lobbyId, playerIndex) {
+      try {
+        const r = await fetch(`${SERVER_BASE}/lobby/${encodeURIComponent(lobbyId)}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerIndex })
+        });
+        return await r.json();
+      } catch (e) {
+        return { error: 'Network error' };
+      }
+    }
+
+    async function getRoleFromLobby(lobbyId, token) {
+      try {
+        const r = await fetch(`${SERVER_BASE}/lobby/${encodeURIComponent(lobbyId)}/role`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        return await r.json();
+      } catch (e) {
+        return { error: 'Network error' };
+      }
+    }
+
+    // Button handlers for lobby
+    createLobbyBtn.addEventListener('click', async () => {
+      const modeKey = gameModeSelect.value;
+      const playersCount = Number(playersInput.value);
+      const t = i18n[langSelect.value];
+      if (!modeKey || !playersCount) { showError(t.errors.noSeed); return; }
+      createLobbyBtn.disabled = true;
+      const data = await createLobbyOnline(modeKey, playersCount);
+      createLobbyBtn.disabled = false;
+      if (data && data.lobbyId) {
+        // Save host lobby id so host can later manage (optional)
+        localStorage.setItem('lastLobbyId', data.lobbyId);
+        alert(i18n[langSelect.value].lobbyCreated(data.lobbyId));
+      } else {
+        showError(data && data.error ? data.error : 'Failed to create lobby');
+      }
+    });
+
+    joinLobbyBtn.addEventListener('click', async () => {
+      const lobbyId = (joinLobbyInput.value || '').trim().toUpperCase();
+      const playerIndex = Number(playerIndexInput.value);
+      const t = i18n[langSelect.value];
+      if (!lobbyId) { showError(t.errors.noSeed); return; }
+      joinLobbyBtn.disabled = true;
+      const data = await joinLobbyOnline(lobbyId, playerIndex);
+      joinLobbyBtn.disabled = false;
+      if (data && data.token) {
+        localStorage.setItem('lobby_token_' + lobbyId, data.token);
+        alert(i18n[langSelect.value].lobbyJoined());
+      } else {
+        showError(data && data.error ? data.error : 'Failed to join lobby');
+      }
+    });
+
+    // Main "show role" logic — supports online (if lobby code + token) and offline (local seed)
+    showRoleBtn.addEventListener("click", async function () {
         errorBox.style.display = "none";
         resultCard.style.display = "none";
 
@@ -653,10 +822,11 @@
         const modeKey = gameModeSelect.value;
         const mode = gameModes[modeKey];
 
-        if (!seedStr) {
-            showError(t.errors.noSeed);
+        if (!modeKey) {
+            showError("Choose a game.");
             return;
         }
+
         if (!Number.isFinite(playersCount) || playersCount < 2) {
             showError(t.errors.playersMin);
             return;
@@ -670,7 +840,48 @@
             return;
         }
 
-        // мягкий античит: один и тот же seed + игра → один показ роли за сессию вкладки
+        // If user provided lobby code -> try online flow
+        const lobbyIdRaw = (joinLobbyInput.value || '').trim();
+        const lobbyId = lobbyIdRaw ? lobbyIdRaw.toUpperCase() : null;
+
+        if (lobbyId) {
+            // online mode: require token saved locally
+            const token = localStorage.getItem('lobby_token_' + lobbyId);
+            if (!token) {
+                showError("No token found for this lobby. First click 'Join lobby' and save your token.");
+                return;
+            }
+            // request role from server
+            const resp = await getRoleFromLobby(lobbyId, token);
+            if (!resp) {
+                showError("Network error");
+                return;
+            }
+            if (resp.error) {
+                showError(resp.error);
+                return;
+            }
+            const myRole = resp.role;
+            // myRole can be string 'spy' or object {id:..., ru:...}
+            if ((typeof myRole === 'string' && myRole === 'spy') || (myRole && myRole.id === 'spy')) {
+                roleText.textContent = t.spyRole;
+                extraText.textContent = t.spyText(mode.title[lang], mode.label[lang]);
+            } else {
+                const itemName = getLocalizedName(myRole, lang);
+                roleText.textContent = itemName;
+                extraText.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], itemName);
+            }
+            resultCard.style.display = "block";
+            return;
+        }
+
+        // OFFLINE flow (legacy): one seed -> one show per sessionStorage (soft anti-cheat)
+        if (!seedStr) {
+            showError(t.errors.noSeed);
+            return;
+        }
+
+        // session anti-cheat (only for offline)
         const sessionKey = "finkizet_seed_used_" + modeKey + "_" + seedStr;
         if (sessionStorage.getItem(sessionKey)) {
             showError(t.errors.cheat);
@@ -682,17 +893,13 @@
         if (!Number.isFinite(seedNum)) {
             seedNum = hashStringToInt(seedStr);
         }
-        if (seedNum === 0) {
-            seedNum = 1;
-        }
+        if (seedNum === 0) seedNum = 1;
 
         const shuffledItems = shuffleWithSeed(mode.items, seedNum + 1);
         const sharedItem = shuffledItems[0];
 
         const roles = [];
-        for (let i = 0; i < playersCount - 1; i++) {
-            roles.push(sharedItem);
-        }
+        for (let i = 0; i < playersCount - 1; i++) roles.push(sharedItem);
         roles.push("spy");
 
         const shuffledRoles = shuffleWithSeed(roles, seedNum + 2);
@@ -710,7 +917,7 @@
         resultCard.style.display = "block";
     });
 
-    // стартуем на русском
+    // Start with Russian
     applyLang("ru");
 </script>
 </body>
