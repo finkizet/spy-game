@@ -1,14 +1,10 @@
 {
   "items": [
-    { "id": "Pudge" },
-    { "id": "Invoker" },
-    { "id": "Juggernaut" },
-    { "id": "Crystal Maiden" },
-    { "id": "Phantom Assassin" },
-    { "id": "Axe" },
-    { "id": "Shadow Fiend" },
-    { "id": "Lina" },
-    { "id": "Lion" },
-    { "id": "Earthshaker" }
+    { "id": "Pudge", "ru": "Pudge" },
+    { "id": "Invoker", "ru": "Invoker" },
+    { "id": "Juggernaut", "ru": "Juggernaut" },
+    { "id": "Crystal Maiden", "ru": "Crystal Maiden" },
+    { "id": "Phantom Assassin", "ru": "Phantom Assassin" },
+    { "id": "Axe", "ru": "Axe" }
   ]
 }
