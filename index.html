@@ -785,6 +785,13 @@ const gameModes = {
         applyLang(langSelect.value);
         errorBox.style.display = "none";
         resultCard.style.display = "none";
+
+        const code = localStorage.getItem('lastLobbyId');
+        if (code) {
+            socket.emit('get_lobby', { code }, (r) => {
+                if (r && r.ok) renderLobbyState(r.lobby);
+            });
+        }
     });
 
     function showError(msg) {
