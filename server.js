@@ -190,15 +190,19 @@ io.on('connection', (socket) => {
     if (cb) cb({ ok: true });
   });
 
-  // start round (admin)
   socket.on('start_round', ({ code, spyCount = 1, theme = null }, cb) => {
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
-    if (Object.keys(lobby.players).length < 3) { if (cb) cb({ error: 'Not enough players' }); return; }
+    
+    // ИЗМЕНЕНО: берём текущее количество игроков, а не lobby.playersCount
+    const currentPlayersCount = Object.keys(lobby.players).length;
+    if (currentPlayersCount < 3) { if (cb) cb({ error: 'Not enough players (min 3)' }); return; }
+    
     // build playerIndex list sorted by index
     const playersArr = Object.entries(lobby.players).map(([sid,p]) => ({ sid, ...p }));
     playersArr.sort((a,b)=>a.index - b.index);
+    
     // determine shared item using lobby.seed
     const items = GAME_ITEMS[lobby.gameKey] || [];
     if (!items || items.length === 0) {
@@ -207,17 +211,20 @@ io.on('connection', (socket) => {
     }
     const shuffledItems = shuffleWithSeed(items, lobby.seed + 1);
     const sharedItem = shuffledItems[0];
-    // prepare roles array: (playersCount- spyCount) items (all same), plus spyCount spies
+    
+    // ИЗМЕНЕНО: используем playersArr.length вместо lobby.playersCount
     const rolePool = [];
-    for (let i=0;i<playersArr.length - spyCount;i++) rolePool.push(sharedItem);
-    for (let i=0;i<spyCount;i++) rolePool.push({ id: 'spy', sys: true });
+    for (let i=0; i<playersArr.length - spyCount; i++) rolePool.push(sharedItem);
+    for (let i=0; i<spyCount; i++) rolePool.push({ id: 'spy', sys: true });
     const shuffledRoles = shuffleWithSeed(rolePool, lobby.seed + 2);
+    
     // assign roles by playersArr order
     const assigned = {};
-    for (let i=0;i<playersArr.length;i++) {
+    for (let i=0; i<playersArr.length; i++) {
       const p = playersArr[i];
       assigned[p.index] = shuffledRoles[i];
     }
+    
     // store round
     lobby.state = 'in-round';
     lobby.round = {
@@ -226,6 +233,7 @@ io.on('connection', (socket) => {
       assigned,
       theme
     };
+    
     // notify players privately with their role
     for (const [sid, p] of Object.entries(lobby.players)) {
       const role = lobby.round.assigned[p.index];
