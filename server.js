@@ -125,31 +125,47 @@ io.on('connection', (socket) => {
 
   // join lobby
   socket.on('join_lobby', ({ code, index }, cb) => {
-    code = (code || '').toUpperCase();
-    const lobby = LOBBIES[code];
-    if (!lobby) {
-      if (cb) cb({ error: 'Lobby not found' });
+  code = (code || '').toUpperCase();
+  const lobby = LOBBIES[code];
+  if (!lobby) {
+    if (cb) cb({ error: 'Lobby not found' });
+    return;
+  }
+  
+  // Если index не указан или null - автоматически выбираем свободный
+  if (!index || index === 'auto') {
+    const takenIndexes = Object.values(lobby.players).map(p => p.index);
+    for (let i = 1; i <= lobby.playersCount; i++) {
+      if (!takenIndexes.includes(i)) {
+        index = i;
+        break;
+      }
+    }
+    if (!index) {
+      if (cb) cb({ error: 'Lobby is full' });
       return;
     }
-    // check index validity and free
-    index = Number(index) || null;
+  } else {
+    index = Number(index);
     if (!index || index < 1 || index > lobby.playersCount) {
       if (cb) cb({ error: 'Bad index' });
       return;
     }
-    // ensure index not taken
+    // проверяем что не занят
     const taken = Object.values(lobby.players).some(p => p.index === index);
     if (taken) {
       if (cb) cb({ error: 'Index already taken' });
       return;
     }
-    // add player
-    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby' };
-    socket.join(code);
-    socket.data.lobby = code;
-    if (cb) cb({ ok: true, code, yourIndex: index });
-    io.to(code).emit('lobby_update', publicLobbyState(lobby));
-  });
+  }
+  
+  // добавляем игрока
+  lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby' };
+  socket.join(code);
+  socket.data.lobby = code;
+  if (cb) cb({ ok: true, code, yourIndex: index });
+  io.to(code).emit('lobby_update', publicLobbyState(lobby));
+});
 
   // leave lobby (explicit)
   socket.on('leave_lobby', (data, cb) => {
