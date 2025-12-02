@@ -587,6 +587,11 @@ const gameModes = {
             joinLobbyPlaceholder: "Например: ABC123",
             lobbyCreated: (code) => `Лобби создано: ${code}. Поделитесь кодом.`,
             lobbyJoined: () => `Вы вошли в лобби. Токен сохранён локально.`,
+            leaveLobbyBtn: "Выйти из лобби",
+            startRoundBtn: "Начать раунд",
+            nextRoundBtn: "Следующий раунд",
+            lobbyWord: "Лобби",
+            inGame: "(В игре)",
             errors: {
                 noSeed: "Введите общий код / seed.",
                 playersMin: "Количество игроков должно быть не меньше 2.",
@@ -624,6 +629,11 @@ const gameModes = {
             joinLobbyPlaceholder: "Example: ABC123",
             lobbyCreated: (code) => `Lobby created: ${code}. Share the code.`,
             lobbyJoined: () => `You joined the lobby. Token saved locally.`,
+            leaveLobbyBtn: "Leave lobby",
+            startRoundBtn: "Start round",
+            nextRoundBtn: "Next round",
+            lobbyWord: "Lobby",
+            inGame: "(In game)",
             errors: {
                 noSeed: "Enter the shared code / seed.",
                 playersMin: "Number of players must be at least 2.",
@@ -760,6 +770,10 @@ const gameModes = {
         createLobbyBtn.textContent = t.createLobbyBtn;
         joinLobbyBtn.textContent = t.joinLobbyBtn;
 
+        leaveLobbyBtn.textContent = t.leaveLobbyBtn;
+        startRoundBtn.textContent = t.startRoundBtn;
+        nextRoundBtn.textContent = t.nextRoundBtn;
+        
         const clashOption = gameModeSelect.querySelector('option[value="clash"]');
         const dotaOption = gameModeSelect.querySelector('option[value="dota"]');
         clashOption.textContent = gameModes.clash.title[lang];
@@ -1000,7 +1014,7 @@ function renderLobbyState(state) {
     
   lobbyListEl.innerHTML = `
     <div class="lobby-box">
-      <div><b>Lobby</b> ${state.code} — ${state.players.length}/${state.playersCount} ${state.state === 'in-round' ? '(В игре)' : ''}</div>
+      <div><b>${t.lobbyWord}</b> ${state.code} — ${state.players.length}/${state.playersCount} ${state.state === 'in-round' ? t.inGame : ''}</div>
       <div>${playersHtml}</div>
     </div>
   `;
