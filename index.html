@@ -274,6 +274,10 @@
     <div class="help">
       <button id="leaveLobbyBtn" type="button" style="display:none;">Выйти из лобби</button>
     </div>
+
+    <div class="help">
+      <button id="startRoundBtn" type="button" style="display:none;">Начать раунд</button>
+    </div>
     
     <button id="showRoleBtn"></button>
 
@@ -700,6 +704,21 @@ const gameModes = {
     const footerTextEl = document.getElementById("footerText");
     const labelJoinLobby = document.getElementById("labelJoinLobby");
 
+    const startRoundBtn = document.getElementById("startRoundBtn");
+
+    startRoundBtn.addEventListener('click', () => {
+      const code = localStorage.getItem('lastLobbyId');
+      if (!code) return alert('No lobby code');
+      
+      socket.emit('start_round', { code, spyCount: 1 }, (resp) => {
+        if (resp && resp.error) {
+          showError(resp.error);
+        } else {
+          alert('Раунд начался! Смотрите свою роль.');
+        }
+      });
+    });
+
     function applyLang(lang) {
         const t = i18n[lang];
         document.title = t.pageTitle;
@@ -928,22 +947,37 @@ joinLobbyBtn.addEventListener('click', () => {
 
 
 function renderLobbyState(state) {
-
   if (!state) { 
     lobbyListEl.innerHTML = ''; 
     lobbyListEl.style.display = 'none';
     leaveLobbyBtn.style.display = 'none';
+    startRoundBtn.style.display = 'none';
+    createLobbyBtn.style.display = 'block';
+    joinLobbyBtn.style.display = 'block';
     return; 
   }
+  
   lobbyListEl.style.display = 'block';
-    leaveLobbyBtn.style.display = 'block';
+  leaveLobbyBtn.style.display = 'block';
+  createLobbyBtn.style.display = 'none';
+  joinLobbyBtn.style.display = 'none';
+
+    if (!state) {
+    showRoleBtn.style.display = 'block'; // ПОКАЗАТЬ для offline
+  } else {
+    showRoleBtn.style.display = 'none'; // СКРЫТЬ в онлайн-лобби
+  }
+    
+  const isAdmin = (state.adminSocketId === socket.id);
+  startRoundBtn.style.display = isAdmin ? 'block' : 'none';
   
   const playersHtml = state.players
-    .sort((a,b)=>a.index-b.index)
+    .sort((a,b) => a.index - b.index)
     .map(p => {
-      const isAdmin = (p.socketId === state.adminSocketId);
-      return `<div class="lobby-player">${p.index}. ${escapeHtml(p.nick)} ${isAdmin?'<b>*</b>':''}</div>`;
+      const isPlayerAdmin = (p.socketId === state.adminSocketId);
+      return `<div class="lobby-player">${p.index}. ${escapeHtml(p.nick)} ${isPlayerAdmin ? ' (admin)' : ''}</div>`;
     }).join('');
+    
   lobbyListEl.innerHTML = `
     <div class="lobby-box">
       <div><b>Lobby</b> ${state.code} — ${state.players.length}/${state.playersCount}</div>
