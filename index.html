@@ -719,7 +719,7 @@ const gameModes = {
         if (resp && resp.error) {
           showError(resp.error);
         } else {
-          alert('Раунд начался! Смотрите свою роль.');
+          
         }
       });
     });
@@ -733,7 +733,6 @@ const gameModes = {
           showError(resp.error);
         } else {
           resultCard.style.display = 'none';
-          alert('Раунд завершён! Можно начать новый.');
         }
       });
     });
@@ -932,7 +931,6 @@ createLobbyBtn.addEventListener('click', () => {
     
     localStorage.setItem('lastLobbyId', resp.code);
     joinLobbyInput.value = resp.code;
-    alert(t.lobbyCreated(resp.code));
     
     socket.emit('get_lobby', { code: resp.code }, (r) => {
       if (r.ok) renderLobbyState(r.lobby);
@@ -956,7 +954,6 @@ joinLobbyBtn.addEventListener('click', () => {
     
     localStorage.setItem('lastLobbyId', resp.code);
     playerIndexInput.value = resp.yourIndex; // Показываем выданный индекс
-    alert(t.lobbyJoined() + ` Ваш номер: ${resp.yourIndex}`);
     
     socket.emit('get_lobby', { code: resp.code }, (r) => {
       if (r.ok) renderLobbyState(r.lobby);
@@ -1078,7 +1075,6 @@ leaveLobbyBtn.addEventListener('click', () => {
       localStorage.removeItem('lastLobbyId');
       joinLobbyInput.value = '';
       renderLobbyState(null);
-      alert('Вы вышли из лобби');
     }
   });
 });
