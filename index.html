@@ -720,6 +720,7 @@ const gameModes = {
 
     const startRoundBtn = document.getElementById("startRoundBtn");
     const nextRoundBtn = document.getElementById("nextRoundBtn");
+    const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
     
     startRoundBtn.addEventListener('click', () => {
       const code = localStorage.getItem('lastLobbyId');
@@ -1077,8 +1078,6 @@ function kickClient(index) {
   const code = localStorage.getItem('lastLobbyId');
   socket.emit('kick', { code, targetIndex: index }, (r) => { if (r && r.error) alert(r.error); });
 }
-
-const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
 
 // Обработчик выхода
 leaveLobbyBtn.addEventListener('click', () => {
