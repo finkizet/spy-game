@@ -211,6 +211,15 @@
             }
         }
 
+        .lobby-player {
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+        
+        .lobby-box {
+            padding: 8px 0;
+        }
+        
     </style>
 </head>
 <body>
@@ -899,18 +908,17 @@ joinLobbyBtn.addEventListener('click', () => {
   const t = i18n[langSelect.value];
   if (!code) { showError('Enter lobby code'); return; }
   
-  const index = Number(playerIndexInput.value);
-  if (!index || index < 1) { showError(t.errors.badIndex); return; }
-  
   joinLobbyBtn.disabled = true;
   errorBox.style.display = "none";
   
-  socket.emit('join_lobby', { code, index }, (resp) => {
+  // Отправляем index: 'auto' для автовыбора
+  socket.emit('join_lobby', { code, index: 'auto' }, (resp) => {
     joinLobbyBtn.disabled = false;
     if (resp.error) { showError(resp.error); return; }
     
     localStorage.setItem('lastLobbyId', resp.code);
-    alert(t.lobbyJoined());
+    playerIndexInput.value = resp.yourIndex; // Показываем выданный индекс
+    alert(t.lobbyJoined() + ` Ваш номер: ${resp.yourIndex}`);
     
     socket.emit('get_lobby', { code: resp.code }, (r) => {
       if (r.ok) renderLobbyState(r.lobby);
@@ -920,12 +928,15 @@ joinLobbyBtn.addEventListener('click', () => {
 
 
 function renderLobbyState(state) {
+
   if (!state) { 
     lobbyListEl.innerHTML = ''; 
     lobbyListEl.style.display = 'none';
+    leaveLobbyBtn.style.display = 'none';
     return; 
   }
   lobbyListEl.style.display = 'block';
+    leaveLobbyBtn.style.display = 'block';
   
   const playersHtml = state.players
     .sort((a,b)=>a.index-b.index)
@@ -998,19 +1009,6 @@ function kickClient(index) {
 
 const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
 
-// Показывать кнопку когда в лобби
-function renderLobbyState(state) {
-  if (!state) { 
-    lobbyListEl.innerHTML = ''; 
-    lobbyListEl.style.display = 'none';
-    leaveLobbyBtn.style.display = 'none'; // СКРЫТЬ
-    return; 
-  }
-  lobbyListEl.style.display = 'block';
-  leaveLobbyBtn.style.display = 'block'; // ПОКАЗАТЬ
-  // ... остальной код
-}
-
 // Обработчик выхода
 leaveLobbyBtn.addEventListener('click', () => {
   const code = localStorage.getItem('lastLobbyId');
@@ -1026,19 +1024,6 @@ leaveLobbyBtn.addEventListener('click', () => {
   });
 });
 
-function renderLobbyState(state) {
-  if (!state) { 
-    lobbyListEl.style.display = 'none';
-    leaveLobbyBtn.style.display = 'none';
-    createLobbyBtn.style.display = 'block'; // ПОКАЗАТЬ
-    joinLobbyBtn.style.display = 'block';   // ПОКАЗАТЬ
-    return; 
-  }
-  lobbyListEl.style.display = 'block';
-  leaveLobbyBtn.style.display = 'block';
-  createLobbyBtn.style.display = 'none'; // СКРЫТЬ
-  joinLobbyBtn.style.display = 'none';   // СКРЫТЬ
-}
 </script>
 </body>
 </html>
