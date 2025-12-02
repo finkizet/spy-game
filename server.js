@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
 
   // create lobby
   socket.on('create_lobby', ({ gameKey = 'clash', playersCount = 4 }, cb) => {
-    playersCount = Math.max(3, Math.min(10, Number(playersCount) || 4));
+    playersCount = 10;
     let code;
     do {
       code = genLobbyCode();
