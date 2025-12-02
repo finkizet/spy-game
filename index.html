@@ -857,6 +857,7 @@ socket.on('nick_set', (nick) => {
   localStorage.setItem(NICK_KEY, nick);
 });
 
+const lobbyListEl = document.createElement('div');
 lobbyListEl.className = 'result-card';
 lobbyListEl.style.display = 'none';
 joinLobbyInput.after(lobbyListEl);
@@ -913,9 +914,6 @@ joinLobbyBtn.addEventListener('click', () => {
   });
 });
 
-    
-// helper UI refs (создай/переиспользуй свои элементы)
-const lobbyListEl = document.createElement('div'); // можно вставить куда хочешь
 
 function renderLobbyState(state) {
   if (!state) { lobbyListEl.innerHTML = ''; return; }
