@@ -278,6 +278,10 @@
     <div class="help">
       <button id="startRoundBtn" type="button" style="display:none;">Начать раунд</button>
     </div>
+
+    <div class="help">
+      <button id="nextRoundBtn" type="button" style="display:none;">Следующий раунд</button>
+    </div>
     
     <button id="showRoleBtn"></button>
 
@@ -705,7 +709,8 @@ const gameModes = {
     const labelJoinLobby = document.getElementById("labelJoinLobby");
 
     const startRoundBtn = document.getElementById("startRoundBtn");
-
+    const nextRoundBtn = document.getElementById("nextRoundBtn");
+    
     startRoundBtn.addEventListener('click', () => {
       const code = localStorage.getItem('lastLobbyId');
       if (!code) return alert('No lobby code');
@@ -715,6 +720,20 @@ const gameModes = {
           showError(resp.error);
         } else {
           alert('Раунд начался! Смотрите свою роль.');
+        }
+      });
+    });
+    
+    nextRoundBtn.addEventListener('click', () => {
+      const code = localStorage.getItem('lastLobbyId');
+      if (!code) return alert('No lobby code');
+      
+      socket.emit('end_round', { code }, (resp) => {
+        if (resp && resp.error) {
+          showError(resp.error);
+        } else {
+          resultCard.style.display = 'none';
+          alert('Раунд завершён! Можно начать новый.');
         }
       });
     });
@@ -952,8 +971,10 @@ function renderLobbyState(state) {
     lobbyListEl.style.display = 'none';
     leaveLobbyBtn.style.display = 'none';
     startRoundBtn.style.display = 'none';
+    nextRoundBtn.style.display = 'none'; // ДОБАВИТЬ
     createLobbyBtn.style.display = 'block';
     joinLobbyBtn.style.display = 'block';
+    showRoleBtn.style.display = 'block'; // Показать для offline
     return; 
   }
   
@@ -961,15 +982,19 @@ function renderLobbyState(state) {
   leaveLobbyBtn.style.display = 'block';
   createLobbyBtn.style.display = 'none';
   joinLobbyBtn.style.display = 'none';
-
-    if (!state) {
-    showRoleBtn.style.display = 'block'; // ПОКАЗАТЬ для offline
-  } else {
-    showRoleBtn.style.display = 'none'; // СКРЫТЬ в онлайн-лобби
-  }
-    
+  showRoleBtn.style.display = 'none'; // Скрыть в онлайн
+  
+  // Показываем кнопки только если я админ
   const isAdmin = (state.adminSocketId === socket.id);
-  startRoundBtn.style.display = isAdmin ? 'block' : 'none';
+  
+  // Если раунд идёт - показываем "Следующий раунд", иначе "Начать раунд"
+  if (state.state === 'in-round') {
+    startRoundBtn.style.display = 'none';
+    nextRoundBtn.style.display = isAdmin ? 'block' : 'none';
+  } else {
+    startRoundBtn.style.display = isAdmin ? 'block' : 'none';
+    nextRoundBtn.style.display = 'none';
+  }
   
   const playersHtml = state.players
     .sort((a,b) => a.index - b.index)
@@ -980,7 +1005,7 @@ function renderLobbyState(state) {
     
   lobbyListEl.innerHTML = `
     <div class="lobby-box">
-      <div><b>Lobby</b> ${state.code} — ${state.players.length}/${state.playersCount}</div>
+      <div><b>Lobby</b> ${state.code} — ${state.players.length}/${state.playersCount} ${state.state === 'in-round' ? '(В игре)' : ''}</div>
       <div>${playersHtml}</div>
     </div>
   `;
