@@ -262,6 +262,10 @@
         <button id="joinLobbyBtn" type="button">Войти в лобби по коду</button>
     </div>
 
+    <div class="help">
+      <button id="leaveLobbyBtn" type="button" style="display:none;">Выйти из лобби</button>
+    </div>
+    
     <button id="showRoleBtn"></button>
 
     <div id="result" class="result-card" style="display:none;">
@@ -916,7 +920,13 @@ joinLobbyBtn.addEventListener('click', () => {
 
 
 function renderLobbyState(state) {
-  if (!state) { lobbyListEl.innerHTML = ''; return; }
+  if (!state) { 
+    lobbyListEl.innerHTML = ''; 
+    lobbyListEl.style.display = 'none';
+    return; 
+  }
+  lobbyListEl.style.display = 'block';
+  
   const playersHtml = state.players
     .sort((a,b)=>a.index-b.index)
     .map(p => {
@@ -986,6 +996,49 @@ function kickClient(index) {
   socket.emit('kick', { code, targetIndex: index }, (r) => { if (r && r.error) alert(r.error); });
 }
 
+const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
+
+// Показывать кнопку когда в лобби
+function renderLobbyState(state) {
+  if (!state) { 
+    lobbyListEl.innerHTML = ''; 
+    lobbyListEl.style.display = 'none';
+    leaveLobbyBtn.style.display = 'none'; // СКРЫТЬ
+    return; 
+  }
+  lobbyListEl.style.display = 'block';
+  leaveLobbyBtn.style.display = 'block'; // ПОКАЗАТЬ
+  // ... остальной код
+}
+
+// Обработчик выхода
+leaveLobbyBtn.addEventListener('click', () => {
+  const code = localStorage.getItem('lastLobbyId');
+  if (!code) return;
+  
+  socket.emit('leave_lobby', {}, (resp) => {
+    if (resp && resp.ok) {
+      localStorage.removeItem('lastLobbyId');
+      joinLobbyInput.value = '';
+      renderLobbyState(null);
+      alert('Вы вышли из лобби');
+    }
+  });
+});
+
+function renderLobbyState(state) {
+  if (!state) { 
+    lobbyListEl.style.display = 'none';
+    leaveLobbyBtn.style.display = 'none';
+    createLobbyBtn.style.display = 'block'; // ПОКАЗАТЬ
+    joinLobbyBtn.style.display = 'block';   // ПОКАЗАТЬ
+    return; 
+  }
+  lobbyListEl.style.display = 'block';
+  leaveLobbyBtn.style.display = 'block';
+  createLobbyBtn.style.display = 'none'; // СКРЫТЬ
+  joinLobbyBtn.style.display = 'none';   // СКРЫТЬ
+}
 </script>
 </body>
 </html>
