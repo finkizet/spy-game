@@ -989,25 +989,69 @@ function renderLobbyState(state) {
   const t = i18n[lang];
     
   if (!state) { 
+    // Вышли из лобби - показываем весь offline интерфейс
     lobbyListEl.innerHTML = ''; 
     lobbyListEl.style.display = 'none';
     leaveLobbyBtn.style.display = 'none';
     startRoundBtn.style.display = 'none';
-    nextRoundBtn.style.display = 'none'; // ДОБАВИТЬ
+    nextRoundBtn.style.display = 'none';
     createLobbyBtn.style.display = 'block';
     joinLobbyBtn.style.display = 'block';
-    showRoleBtn.style.display = 'block'; // Показать для offline
+    showRoleBtn.style.display = 'block';
+    
+    // Показать все поля для offline режима
+    labelGameEl.style.display = 'block';
+    gameModeSelect.style.display = 'block';
+    helpGameModeEl.style.display = 'block';
+    
+    labelSeedEl.style.display = 'block';
+    seedInput.style.display = 'block';
+    helpSeedEl.style.display = 'block';
+    
+    labelPlayersEl.style.display = 'block';
+    playersInput.style.display = 'block';
+    helpPlayersEl.style.display = 'block';
+    
+    labelPlayerIndexEl.style.display = 'block';
+    playerIndexInput.style.display = 'block';
+    helpPlayerIndexEl.style.display = 'block';
+    
     return; 
   }
   
+  // В лобби - показываем lobby UI
   lobbyListEl.style.display = 'block';
   leaveLobbyBtn.style.display = 'block';
   createLobbyBtn.style.display = 'none';
   joinLobbyBtn.style.display = 'none';
-  showRoleBtn.style.display = 'none'; // Скрыть в онлайн
+  showRoleBtn.style.display = 'none';
   
-  // Показываем кнопки только если я админ
+  // Скрыть offline поля
+  labelSeedEl.style.display = 'none';
+  seedInput.style.display = 'none';
+  helpSeedEl.style.display = 'none';
+  
+  labelPlayersEl.style.display = 'none';
+  playersInput.style.display = 'none';
+  helpPlayersEl.style.display = 'none';
+  
+  labelPlayerIndexEl.style.display = 'none';
+  playerIndexInput.style.display = 'none';
+  helpPlayerIndexEl.style.display = 'none';
+  
+  // Проверяем админ ли мы
   const isAdmin = (state.adminSocketId === socket.id);
+  
+  // Game selector - только для админа
+  if (isAdmin) {
+    labelGameEl.style.display = 'block';
+    gameModeSelect.style.display = 'block';
+    helpGameModeEl.style.display = 'block';
+  } else {
+    labelGameEl.style.display = 'none';
+    gameModeSelect.style.display = 'none';
+    helpGameModeEl.style.display = 'none';
+  }
   
   // Если раунд идёт - показываем "Следующий раунд", иначе "Начать раунд"
   if (state.state === 'in-round') {
