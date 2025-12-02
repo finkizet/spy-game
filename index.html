@@ -975,6 +975,9 @@ joinLobbyBtn.addEventListener('click', () => {
 
 
 function renderLobbyState(state) {
+  const lang = langSelect.value;
+  const t = i18n[lang];
+    
   if (!state) { 
     lobbyListEl.innerHTML = ''; 
     lobbyListEl.style.display = 'none';
