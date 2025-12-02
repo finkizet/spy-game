@@ -915,17 +915,15 @@ joinLobbyInput.after(lobbyListEl);
 // Create lobby
 createLobbyBtn.addEventListener('click', () => {
   const modeKey = gameModeSelect.value;
-  const playersCount = Number(playersInput.value) || 4;
   const t = i18n[langSelect.value];
   
   if (!modeKey) { showError("Choose a game."); return; }
-  if (playersCount < 2) { showError(t.errors.playersMin); return; }
-  if (playersCount > 10) { showError(t.errors.playersMax); return; }
   
   createLobbyBtn.disabled = true;
   errorBox.style.display = "none";
   
-  socket.emit('create_lobby', { gameKey: modeKey, playersCount }, (resp) => {
+  // Для онлайн-лобби всегда используем максимум 10 игроков
+  socket.emit('create_lobby', { gameKey: modeKey, playersCount: 10 }, (resp) => {
     createLobbyBtn.disabled = false;
     if (resp.error) { showError(resp.error); return; }
     
