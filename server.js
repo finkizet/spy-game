@@ -90,6 +90,24 @@ io.on('connection', (socket) => {
   socket.on('set_nick', (nick) => {
     socket.data.nick = typeof nick === 'string' ? nick.slice(0, 32) : `Player${socket.id.slice(0,4)}`;
     socket.emit('nick_set', socket.data.nick);
+    // обновляем ник в лобби, если игрок уже в нём
+    const code = socket.data.lobby;
+    if (code && LOBBIES[code] && LOBBIES[code].players[socket.id]) {
+      LOBBIES[code].players[socket.id].nick = socket.data.nick;
+      io.to(code).emit('lobby_update', publicLobbyState(LOBBIES[code]));
+    }
+  });
+
+  // смена темы игры (только админ, только в состоянии lobby)
+  socket.on('change_game', ({ code, gameKey }, cb) => {
+    const lobby = LOBBIES[code];
+    if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
+    if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
+    if (lobby.state === 'in-round') { if (cb) cb({ error: 'Round in progress' }); return; }
+    if (!GAME_ITEMS[gameKey] || GAME_ITEMS[gameKey].length === 0) { if (cb) cb({ error: 'Unknown game' }); return; }
+    lobby.gameKey = gameKey;
+    io.to(code).emit('lobby_update', publicLobbyState(lobby));
+    if (cb) cb({ ok: true });
   });
 
   // create lobby
