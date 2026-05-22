@@ -264,6 +264,9 @@
     <hr style="margin: 25px 0;">
     
     <!-- Online lobby controls -->
+    <label for="nickInput" id="labelNick">Никнейм</label>
+    <input id="nickInput" type="text" maxlength="32" placeholder="Твой ник" />
+
     <div class="help">
         <button id="createLobbyBtn" type="button">Создать онлайн-лобби</button>
     </div>
@@ -725,7 +728,7 @@ const gameModes = {
     const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
     
     startRoundBtn.addEventListener('click', () => {
-      const code = localStorage.getItem('lastLobbyId');
+      const code = currentLobbyCode;
       if (!code) return alert('No lobby code');
       
       socket.emit('start_round', { code, spyCount: 1 }, (resp) => {
@@ -738,7 +741,7 @@ const gameModes = {
     });
     
     nextRoundBtn.addEventListener('click', () => {
-      const code = localStorage.getItem('lastLobbyId');
+      const code = currentLobbyCode;
       if (!code) return alert('No lobby code');
       
       socket.emit('end_round', { code }, (resp) => {
@@ -788,7 +791,7 @@ const gameModes = {
         errorBox.style.display = "none";
         resultCard.style.display = "none";
 
-        const code = localStorage.getItem('lastLobbyId');
+        const code = currentLobbyCode;
         if (code) {
             socket.emit('get_lobby', { code }, (r) => {
                 if (r && r.ok) renderLobbyState(r.lobby);
@@ -914,18 +917,35 @@ const gameModes = {
     applyLang("ru");
 
     // ---------- Socket client integration ----------
-const SOCKET_URL = SERVER_BASE; // например https://spy-game-clr8.onrender.com
+const SOCKET_URL = SERVER_BASE;
 const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
 
-// nickname handling (localStorage)
+// текущий код лобби — в памяти, не в localStorage
+let currentLobbyCode = null;
+
+// nickname handling
 const NICK_KEY = 'finkizet_nick';
+const nickInput = document.getElementById('nickInput');
 let localNick = localStorage.getItem(NICK_KEY) || '';
-if (!localNick) {
-  // ask user for nick (simple prompt) — ты можешь заменить на UI input
-  localNick = prompt('Enter your nickname', 'Player') || 'Player';
+if (localNick) nickInput.value = localNick;
+
+nickInput.addEventListener('change', () => {
+  const val = nickInput.value.trim();
+  if (!val) return;
+  localNick = val;
   localStorage.setItem(NICK_KEY, localNick);
-}
-socket.emit('set_nick', localNick);
+  socket.emit('set_nick', localNick);
+});
+
+socket.on('connect', () => {
+  const nick = nickInput.value.trim() || localNick || 'Player';
+  socket.emit('set_nick', nick);
+});
+
+socket.on('connect_error', () => {
+  showError('Сервер просыпается, подожди ~30 сек...');
+});
+
 socket.on('nick_set', (nick) => {
   localNick = nick;
   localStorage.setItem(NICK_KEY, nick);
@@ -952,6 +972,7 @@ createLobbyBtn.addEventListener('click', () => {
     if (resp.error) { showError(resp.error); return; }
     
     localStorage.setItem('lastLobbyId', resp.code);
+    currentLobbyCode = resp.code;
     joinLobbyInput.value = resp.code;
     
     socket.emit('get_lobby', { code: resp.code }, (r) => {
@@ -975,6 +996,7 @@ joinLobbyBtn.addEventListener('click', () => {
     if (resp.error) { showError(resp.error); return; }
     
     localStorage.setItem('lastLobbyId', resp.code);
+    currentLobbyCode = resp.code;
     playerIndexInput.value = resp.yourIndex; // Показываем выданный индекс
     
     socket.emit('get_lobby', { code: resp.code }, (r) => {
@@ -1110,35 +1132,19 @@ socket.on('round_ended', (state) => {
 
 // handle kicked
 socket.on('kicked', ({ reason }) => {
-  alert('You were kicked: ' + (reason||''));
-  // optionally reload or redirect
+  alert('Тебя кикнули: ' + (reason||''));
+  currentLobbyCode = null;
+  localStorage.removeItem('lastLobbyId');
+  renderLobbyState(null);
 });
-
-// utility: admin controls in client (simple prompt flows)
-function startRoundClient() {
-  const code = localStorage.getItem('lastLobbyId');
-  if (!code) return alert('No lobby code stored');
-  const spyCount = 1;
-  socket.emit('start_round', { code, spyCount }, (r) => {
-    if (r && r.error) alert(r.error);
-  });
-}
-function endRoundClient() {
-  const code = localStorage.getItem('lastLobbyId');
-  socket.emit('end_round', { code }, (r) => { if (r && r.error) alert(r.error); });
-}
-function kickClient(index) {
-  const code = localStorage.getItem('lastLobbyId');
-  socket.emit('kick', { code, targetIndex: index }, (r) => { if (r && r.error) alert(r.error); });
-}
 
 // Обработчик выхода
 leaveLobbyBtn.addEventListener('click', () => {
-  const code = localStorage.getItem('lastLobbyId');
-  if (!code) return;
+  if (!currentLobbyCode) return;
   
   socket.emit('leave_lobby', {}, (resp) => {
     if (resp && resp.ok) {
+      currentLobbyCode = null;
       localStorage.removeItem('lastLobbyId');
       joinLobbyInput.value = '';
       renderLobbyState(null);
