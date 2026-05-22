@@ -929,18 +929,21 @@ const nickInput = document.getElementById('nickInput');
 let localNick = localStorage.getItem(NICK_KEY) || '';
 if (localNick) nickInput.value = localNick;
 
-nickInput.addEventListener('change', () => {
+nickInput.addEventListener('input', () => {
   const val = nickInput.value.trim();
   if (!val) return;
   localNick = val;
   localStorage.setItem(NICK_KEY, localNick);
   socket.emit('set_nick', localNick);
+  console.log('[nick] set_nick ->', localNick);
 });
 
 // смена темы игры в лобби
 gameModeSelect.addEventListener('change', () => {
-  if (!currentLobbyCode) return; // вне лобби — ничего не делаем
+  console.log('[game] change ->', gameModeSelect.value, 'lobby:', currentLobbyCode);
+  if (!currentLobbyCode) return;
   socket.emit('change_game', { code: currentLobbyCode, gameKey: gameModeSelect.value }, (resp) => {
+    console.log('[game] change_game resp:', resp);
     if (resp && resp.error) showError(resp.error);
   });
 });
