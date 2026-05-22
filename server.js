@@ -250,6 +250,7 @@ io.on('connection', (socket) => {
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
     lobby.state = 'lobby';
     lobby.round = null;
+    lobby.votes = {};
     lobby.seed = randInt32(); // new seed for next round
     io.to(code).emit('round_ended', publicLobbyState(lobby));
     if (cb) cb({ ok: true });
@@ -264,6 +265,8 @@ io.on('connection', (socket) => {
     if (!targetSid) { if (cb) cb({ error: 'Player not found' }); return; }
     io.to(targetSid).emit('kicked', { reason: 'Kicked by admin' });
     delete lobby.players[targetSid];
+    const kickedSocket = io.sockets.sockets.get(targetSid);
+    if (kickedSocket) kickedSocket.leave(code);
     io.to(code).emit('lobby_update', publicLobbyState(lobby));
     if (cb) cb({ ok: true });
   });
