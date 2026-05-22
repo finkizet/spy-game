@@ -735,7 +735,7 @@ const gameModes = {
         if (resp && resp.error) {
           showError(resp.error);
         } else {
-          
+          errorBox.style.display = 'none';
         }
       });
     });
@@ -937,6 +937,14 @@ nickInput.addEventListener('change', () => {
   socket.emit('set_nick', localNick);
 });
 
+// смена темы игры в лобби
+gameModeSelect.addEventListener('change', () => {
+  if (!currentLobbyCode) return; // вне лобби — ничего не делаем
+  socket.emit('change_game', { code: currentLobbyCode, gameKey: gameModeSelect.value }, (resp) => {
+    if (resp && resp.error) showError(resp.error);
+  });
+});
+
 socket.on('connect', () => {
   const nick = nickInput.value.trim() || localNick || 'Player';
   socket.emit('set_nick', nick);
@@ -1063,6 +1071,11 @@ function renderLobbyState(state) {
   
   // Проверяем админ ли мы
   const isAdmin = (state.adminSocketId === socket.id);
+
+  // синхронизируем селект темы с состоянием лобби
+  if (gameModeSelect.value !== state.gameKey) {
+    gameModeSelect.value = state.gameKey;
+  }
   
   // Game selector - только для админа
   if (isAdmin) {
