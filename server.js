@@ -79,7 +79,7 @@ setInterval(() => {
 
 // REST endpoints for debug/info
 app.get('/', (req, res) => res.json({ ok: true }));
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ ok: true, version: 2, features: ['change_game', 'nick_in_lobby'] }));
 
 // Socket.IO events
 io.on('connection', (socket) => {
