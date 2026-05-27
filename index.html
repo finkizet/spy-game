@@ -9,8 +9,7 @@
         * { box-sizing: border-box; }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: #0f172a;
             color: #e5e7eb;
@@ -26,205 +25,97 @@
             padding: 24px 16px 40px;
         }
 
-        h1 {
-            font-size: 1.6rem;
-            margin-bottom: 8px;
-            text-align: center;
-        }
+        h1 { font-size: 1.6rem; margin-bottom: 8px; text-align: center; }
 
         .subtitle {
-            font-size: 0.9rem;
-            color: #9ca3af;
-            text-align: center;
-            margin-bottom: 20px;
+            font-size: 0.9rem; color: #9ca3af;
+            text-align: center; margin-bottom: 20px;
         }
 
-        label {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-        }
+        label { display: block; font-size: 0.9rem; margin-bottom: 4px; }
 
-        input,
-        select {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 8px;
-            border: 1px solid #374151;
-            background: #020617;
-            color: #e5e7eb;
-            font-size: 0.95rem;
-            margin-bottom: 14px;
-            outline: none;
+        input, select {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid #374151; background: #020617;
+            color: #e5e7eb; font-size: 0.95rem; margin-bottom: 14px; outline: none;
         }
-
-        input:focus,
-        select:focus {
-            border-color: #3b82f6;
-        }
+        input:focus, select:focus { border-color: #3b82f6; }
 
         button {
-            width: 100%;
-            padding: 11px 14px;
-            border-radius: 999px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            background: #3b82f6;
-            color: #f9fafb;
-            margin-top: 4px;
+            width: 100%; padding: 11px 14px; border-radius: 999px;
+            border: none; cursor: pointer; font-weight: 600; font-size: 1rem;
+            background: #3b82f6; color: #f9fafb; margin-top: 4px;
         }
-
         button:hover { filter: brightness(1.05); }
         button:active { transform: translateY(1px); }
 
-        .help {
-            font-size: 0.8rem;
-            color: #9ca3af;
-            margin-top: 4px;
-            margin-bottom: 12px;
-        }
+        .help { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; margin-bottom: 12px; }
 
         .result-card {
-            margin-top: 18px;
-            padding: 14px 16px;
-            border-radius: 12px;
-            background: #020617;
-            border: 1px solid #1f2937;
+            margin-top: 18px; padding: 14px 16px; border-radius: 12px;
+            background: #020617; border: 1px solid #1f2937;
         }
-
-        .result-title {
-            font-size: 0.85rem;
-            color: #9ca3af;
-            margin-bottom: 6px;
-        }
-
-        .role {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
+        .result-title { font-size: 0.85rem; color: #9ca3af; margin-bottom: 6px; }
+        .role { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
 
         .error {
-            margin-top: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            color: #fecaca;
-            font-size: 0.85rem;
+            margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.5);
+            color: #fecaca; font-size: 0.85rem;
         }
 
-        .small {
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-top: 16px;
-        }
+        .small { font-size: 0.8rem; color: #6b7280; margin-top: 16px; }
 
-        /* Верхняя панель для выбора языка */
         #langTopBar {
-            position: absolute; /* changed so it scrolls with page */
-            top: 16px;
-            right: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 10;
+            position: absolute; top: 16px; right: 16px;
+            display: flex; align-items: center; gap: 8px; z-index: 10;
         }
-
-        #langIcon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.9;
-        }
-
+        #langIcon { width: 20px; height: 20px; opacity: 0.9; }
         #langSelectTop {
-            width: auto;
-            min-width: 110px;
-            margin: 0;
-            padding-inline: 10px;
-        }
-
-        @media (max-width: 480px) {
-            #langTopBar {
-                top: 8px;
-                right: 8px;
-            }
-        }
-
-        /* select style (custom arrow) */
-        #langSelectTop {
-            width: auto;
-            min-width: 110px;
-            margin: 0;
+            width: auto; min-width: 110px; margin: 0;
             padding: 10px 32px 10px 10px;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
             background-color: #020617;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23e5e7eb' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            border: 1px solid #374151;
-            border-radius: 8px;
-            color: #e5e7eb;
+            background-repeat: no-repeat; background-position: right 10px center;
+            border: 1px solid #374151; border-radius: 8px; color: #e5e7eb;
         }
+        @media (max-width: 480px) { #langTopBar { top: 8px; right: 8px; } }
 
-        /* version panel -->
-        #versionPanel {
-            position: absolute;
-            left: 16px;
-            top: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 8px 12px;
-            background: rgba(2, 6, 23, 0.6);
-            border: 1px solid #374151;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            z-index: 9;
-        }
+        .lobby-player { padding: 4px 0; font-size: 0.9rem; }
+        .lobby-box { padding: 8px 0; }
 
-        #versionText {
-            color: #9ca3af;
-            line-height: 1.2rem;
+        /* ── Экран выбора режима ── */
+        #modeScreen {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 70vh; gap: 16px;
         }
+        #modeScreen h1 { margin-bottom: 4px; }
+        #modeScreen .subtitle { margin-bottom: 32px; }
+        .mode-btn {
+            max-width: 320px;
+            padding: 18px 14px;
+            font-size: 1.1rem;
+            border-radius: 14px;
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .mode-btn .mode-icon { font-size: 2rem; line-height: 1; }
+        .mode-btn .mode-sub { font-size: 0.8rem; font-weight: 400; opacity: 0.75; }
+        #btnOnline { background: #3b82f6; }
+        #btnOffline { background: #1e293b; border: 1px solid #374151; color: #e5e7eb; }
 
-        #madeBy {
-            color: #60a5fa;
-            text-decoration: none;
-            font-size: 0.75rem;
+        /* кнопка «назад» */
+        #backBtn {
+            width: auto; background: transparent; border: 1px solid #374151;
+            color: #9ca3af; font-size: 0.85rem; font-weight: 500;
+            padding: 7px 16px; border-radius: 999px; margin-bottom: 20px;
         }
-
-        #madeBy:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 600px) {
-            #versionPanel {
-                position: static;
-                margin: 12px auto;
-                text-align: center;
-                width: fit-content;
-            }
-        }
-
-        .lobby-player {
-            padding: 4px 0;
-            font-size: 0.9rem;
-        }
-        
-        .lobby-box {
-            padding: 8px 0;
-        }
-        
+        #backBtn:hover { background: #1e293b; }
     </style>
 </head>
 <body>
 
-<!-- Верхняя панель выбора языка -->
 <div id="langTopBar">
     <img src="assets/language.svg" id="langIcon" alt="Language" />
     <select id="langSelectTop">
@@ -234,940 +125,619 @@
 </div>
 
 <div class="container">
-    <h1 id="heading"></h1>
-    <div id="subtitle" class="subtitle"></div>
 
-    <label for="gameMode" id="labelGame"></label>
-    <select id="gameMode">
-        <option value="clash"></option>
-        <option value="dota"></option>
-    </select>
-
-    <div id="helpGameMode" class="help"></div>
-
-    <label for="seedInput" id="labelSeed"></label>
-    <input id="seedInput" type="text" />
-
-    <div id="helpSeed" class="help"></div>
-
-    <label for="playersInput" id="labelPlayers"></label>
-    <input id="playersInput" type="number" min="2" max="10" value="4" />
-
-    <div id="helpPlayers" class="help"></div>
-
-    <label for="playerIndexInput" id="labelPlayerIndex"></label>
-    <input id="playerIndexInput" type="number" min="1" max="10" value="1" />
-
-    <div id="helpPlayerIndex" class="help"></div>
-
-    <button id="showRoleBtn"></button>
-    <hr style="margin: 25px 0;">
-    
-    <!-- Online lobby controls -->
-    <label for="nickInput" id="labelNick">Никнейм</label>
-    <input id="nickInput" type="text" maxlength="32" placeholder="Твой ник" />
-
-    <div class="help">
-        <button id="createLobbyBtn" type="button">Создать онлайн-лобби</button>
+    <!-- ══ ЭКРАН ВЫБОРА РЕЖИМА ══ -->
+    <div id="modeScreen">
+        <h1 id="msHeading"></h1>
+        <div id="msSubtitle" class="subtitle"></div>
+        <button class="mode-btn" id="btnOnline">
+            <span class="mode-icon">🌐</span>
+            <span id="msOnlineLabel"></span>
+            <span class="mode-sub" id="msOnlineSub"></span>
+        </button>
+        <button class="mode-btn" id="btnOffline">
+            <span class="mode-icon">📱</span>
+            <span id="msOfflineLabel"></span>
+            <span class="mode-sub" id="msOfflineSub"></span>
+        </button>
     </div>
 
-    <label for="joinLobbyInput" id="labelJoinLobby">Код лобби</label>
-    <input id="joinLobbyInput" type="text" placeholder="Например: ABC123" />
-    <div class="help">
-        <button id="joinLobbyBtn" type="button">Войти в лобби по коду</button>
+    <!-- ══ ОНЛАЙН-РЕЖИМ ══ -->
+    <div id="onlineScreen" style="display:none;">
+        <button id="backBtn" id="backFromOnline">← <span id="backLabel"></span></button>
+
+        <h1 id="onlineHeading"></h1>
+        <div id="onlineSubtitle" class="subtitle"></div>
+
+        <label for="nickInput" id="labelNick">Никнейм</label>
+        <input id="nickInput" type="text" maxlength="32" placeholder="Твой ник" />
+
+        <label for="gameModeOnline" id="labelGameOnline"></label>
+        <select id="gameModeOnline">
+            <option value="clash"></option>
+            <option value="dota"></option>
+        </select>
+        <div id="helpGameModeOnline" class="help"></div>
+
+        <button id="createLobbyBtn" type="button"></button>
+
+        <label for="joinLobbyInput" id="labelJoinLobby" style="margin-top:12px;"></label>
+        <input id="joinLobbyInput" type="text" placeholder="Например: ABC123" />
+        <button id="joinLobbyBtn" type="button"></button>
+
+        <div style="margin-top:8px;">
+            <button id="leaveLobbyBtn" type="button" style="display:none;"></button>
+        </div>
+        <div style="margin-top:8px;">
+            <button id="startRoundBtn" type="button" style="display:none;"></button>
+        </div>
+        <div style="margin-top:8px;">
+            <button id="nextRoundBtn" type="button" style="display:none;"></button>
+        </div>
+
+        <div id="resultOnline" class="result-card" style="display:none;">
+            <div id="resultTitleOnline" class="result-title"></div>
+            <div id="roleTextOnline" class="role"></div>
+            <div id="extraTextOnline" class="small"></div>
+        </div>
+
+        <div id="errorBoxOnline" class="error" style="display:none;"></div>
     </div>
 
-    <div class="help">
-      <button id="leaveLobbyBtn" type="button" style="display:none;">Выйти из лобби</button>
+    <!-- ══ ОФЛАЙН-РЕЖИМ ══ -->
+    <div id="offlineScreen" style="display:none;">
+        <button id="backFromOffline">← <span id="backLabelOffline"></span></button>
+
+        <h1 id="offlineHeading"></h1>
+        <div id="offlineSubtitle" class="subtitle"></div>
+
+        <label for="gameModeOffline" id="labelGameOffline"></label>
+        <select id="gameModeOffline">
+            <option value="clash"></option>
+            <option value="dota"></option>
+        </select>
+        <div id="helpGameModeOffline" class="help"></div>
+
+        <label for="seedInput" id="labelSeed"></label>
+        <input id="seedInput" type="text" />
+        <div id="helpSeed" class="help"></div>
+
+        <label for="playersInput" id="labelPlayers"></label>
+        <input id="playersInput" type="number" min="2" max="10" value="4" />
+        <div id="helpPlayers" class="help"></div>
+
+        <label for="playerIndexInput" id="labelPlayerIndex"></label>
+        <input id="playerIndexInput" type="number" min="1" max="10" value="1" />
+        <div id="helpPlayerIndex" class="help"></div>
+
+        <button id="showRoleBtn"></button>
+
+        <div id="resultOffline" class="result-card" style="display:none;">
+            <div id="resultTitleOffline" class="result-title"></div>
+            <div id="roleTextOffline" class="role"></div>
+            <div id="extraTextOffline" class="small"></div>
+        </div>
+
+        <div id="errorBoxOffline" class="error" style="display:none;"></div>
+        <div id="footerText" class="small"></div>
     </div>
 
-    <div class="help">
-      <button id="startRoundBtn" type="button" style="display:none;">Начать раунд</button>
-    </div>
-
-    <div class="help">
-      <button id="nextRoundBtn" type="button" style="display:none;">Следующий раунд</button>
-    </div>
-    
-
-    <div id="result" class="result-card" style="display:none;">
-        <div id="resultTitle" class="result-title"></div>
-        <div id="roleText" class="role"></div>
-        <div id="extraText" class="small"></div>
-    </div>
-
-    <div id="errorBox" class="error" style="display:none;"></div>
-
-    <div id="footerText" class="small"></div>
-</div>
+</div><!-- /container -->
 
 <script>
-    const SERVER_BASE = "https://spy-game-clr8.onrender.com";
+const SERVER_BASE = "https://spy-game-clr8.onrender.com";
 
+// ─── Данные игр ───────────────────────────────────────────────
 const gameModes = {
-        clash: {
-            title: { ru: "Clash Royale", en: "Clash Royale" },
-            items: [
-                        { id: "Knight", ru: "Рыцарь" },
-                        { id: "Archers", ru: "Лучницы" },
-                        { id: "Goblins", ru: "Гоблины" },
-                        { id: "Giant", ru: "Гигант" },
-                        { id: "P.E.K.K.A", ru: "П.Е.К.К.А." },
-                        { id: "Mini P.E.K.K.A.", ru: "Мини-П.Е.К.К.А." },
-                        { id: "Valkyrie", ru: "Валькирия" },
-                        { id: "Musketeer", ru: "Мушкетёр" },
-                        { id: "Baby Dragon", ru: "Дракончик" },
-                        { id: "Prince", ru: "Принц" },
-                        { id: "Wizard", ru: "Колдун" },
-                        { id: "Skeleton Army", ru: "Армия скелетов" },
-                        { id: "Bomber", ru: "Подрывник" },
-                        { id: "Witch", ru: "Ведьма" },
-                        { id: "Barbarians", ru: "Варвары" },
-                        { id: "Golem", ru: "Голем" },
-                        { id: "Skeletons", ru: "Скелеты" },
-                        { id: "Minions", ru: "Миньоны" },
-                        { id: "Minion Horde", ru: "Орда миньонов" },
-                        { id: "Ice Wizard", ru: "Ледяной колдун" },
-                        { id: "Princess", ru: "Принцесса" },
-                        { id: "Hog Rider", ru: "Всадник на кабане" },
-                        { id: "Freeze", ru: "Заморозка" },
-                        { id: "Arrows", ru: "Стрелы" },
-                        { id: "Fireball", ru: "Огненный шар" },
-                        { id: "Zap", ru: "Разряд" },
-                        { id: "Poison", ru: "Яд" },
-                        { id: "Mirror", ru: "Зеркало" },
-                        { id: "Rage", ru: "Ярость" },
-                        { id: "Goblin Barrel", ru: "Гоблинская бочка" },
-                        { id: "Rocket", ru: "Ракета" },
-                        { id: "Goblin Hut", ru: "Хижина гоблинов" },
-                        { id: "Cannon", ru: "Пушка" },
-                        { id: "Barbarian Hut", ru: "Хижина варваров" },
-                        { id: "Tesla", ru: "Тесла" },
-                        { id: "Elixir Collector", ru: "Сборщик эликсира" },
-                        { id: "Inferno Tower", ru: "Адская башня" },
-                        { id: "Bomb Tower", ru: "Башня-бомбёжка" },
-                        { id: "Tombstone", ru: "Надгробие" },
-                        { id: "Giant Skeleton", ru: "Гигантский скелет" },
-                        { id: "Balloon", ru: "Шар" },
-                        { id: "Lightning", ru: "Молния" },
-                        { id: "X-Bow", ru: "Арбалет" },
-                        { id: "Mortar", ru: "Мортира" },
-                        { id: "Royal Giant", ru: "Королевский гигант" },
-                        { id: "Three Musketeers", ru: "Три мушкетёра" },
-                        { id: "Dark Prince", ru: "Тёмный принц" },
-                        { id: "Guards", ru: "Стражи" },
-                        { id: "Ice Spirit", ru: "Ледяной дух" },
-                        { id: "Fire Spirit", ru: "Огненный дух" },
-                        { id: "Furnace", ru: "Печь" },
-                        { id: "Lava Hound", ru: "Адская гончая" },
-                        { id: "Miner", ru: "Шахтёр" },
-                        { id: "Sparky", ru: "Спарки" },
-                        { id: "Bowler", ru: "Вышибала" },
-                        { id: "Lumberjack", ru: "Дровосек" },
-                        { id: "The Log", ru: "Бревно" },
-                        { id: "Mega Minion", ru: "Мегаминьон" },
-                        { id: "Graveyard", ru: "Кладбище" },
-                        { id: "Ice Golem", ru: "Ледяной голем" },
-                        { id: "Inferno Dragon", ru: "Пламенный дракон" },
-                        { id: "Electro Wizard", ru: "Громовержец" },
-                        { id: "Elite Barbarians", ru: "Элитные варвары" },
-                        { id: "Clone", ru: "Клон" },
-                        { id: "Tornado", ru: "Торнадо" },
-                        { id: "Executioner", ru: "Палач" },
-                        { id: "Dart Goblin", ru: "Гоблин с дротиками" },
-                        { id: "Goblin Gang", ru: "Банда гоблинов" },
-                        { id: "Battle Ram", ru: "Боевой таран" },
-                        { id: "Bandit", ru: "Бандитка" },
-                        { id: "Night Witch", ru: "Ночная ведьма" },
-                        { id: "Bats", ru: "Летучие мыши" },
-                        { id: "Heal Spirit", ru: "Дух исцеления" },
-                        { id: "Cannon Cart", ru: "Повозка с пушкой" },
-                        { id: "Mega Knight", ru: "Мегарыцарь" },
-                        { id: "Skeleton Barrel", ru: "Бочка со скелетами" },
-                        { id: "Flying Machine", ru: "Летучка" },
-                        { id: "Hunter", ru: "Охотник" },
-                        { id: "Zappies", ru: "Минигенераторы" },
-                        { id: "Royal Ghost", ru: "Королевский призрак" },
-                        { id: "Magic Archer", ru: "Магический лучник" },
-                        { id: "Barbarian Barrel", ru: "Варварская бочка" },
-                        { id: "Rascals", ru: "Разбойники" },
-                        { id: "Royal Hogs", ru: "Королевские кабаны" },
-                        { id: "Giant Snowball", ru: "Гигантский снежок" },
-                        { id: "Royal Recruits", ru: "Королевские рекруты" },
-                        { id: "Goblin Giant", ru: "Гоблин-гигант" },
-                        { id: "Electro Dragon", ru: "Электродракон" },
-                        { id: "Ram Rider", ru: "Всадница на баране" },
-                        { id: "Wall Breakers", ru: "Стенобои" },
-                        { id: "Earthquake", ru: "Землетрясение" },
-                        { id: "Goblin Cage", ru: "Клетка с гоблином" },
-                        { id: "Fisherman", ru: "Рыбак" },
-                        { id: "Elixir Golem", ru: "Эликсирный голем" },
-                        { id: "Battle Healer", ru: "Целительница-воин" },
-                        { id: "Firecracker", ru: "Огненная лучница" },
-                        { id: "Royal Delivery", ru: "Королевская почта" },
-                        { id: "Skeleton Dragons", ru: "Костяные драконы" },
-                        { id: "Electro Spirit", ru: "Электродух" },
-                        { id: "Electro Giant", ru: "Электрогигант" },
-                        { id: "Mother Witch", ru: "Ведьмина бабушка" },
-                        { id: "Goblin Drill", ru: "Гоблинский бур" },
-                        { id: "Golden Knight", ru: "Золотой рыцарь" },
-                        { id: "Archer Queen", ru: "Королева лучниц" },
-                        { id: "Skeleton King", ru: "Король скелетов" },
-                        { id: "Mighty Miner", ru: "Шустрый шахтёр" },
-                        { id: "Monk", ru: "Монах" },
-                        { id: "Phoenix", ru: "Феникс" },
-                        { id: "Little Prince", ru: "Маленький принц" },
-                        { id: "Goblin Curse", ru: "Проклятие гоблинов" },
-                        { id: "Goblin Machine", ru: "Гоблинская машина" },
-                        { id: "Suspicious Bush", ru: "Подозрительный куст" },
-                        { id: "Goblinstein", ru: "Гоблинштейн" },
-                        { id: "Rune Giant", ru: "Рунический гигант" },
-                        { id: "Boss Bandit", ru: "Главарь бандитов" },
-                        { id: "Spirit Empress", ru: "Императрица духов" },
-                        { id: "Spear Goblins", ru: "Гоблины-копейщики" }
-            ],
-            label: {
-                ru: "карта из Clash Royale",
-                en: "card from Clash Royale"
-            }
+    clash: {
+        title: { ru: "Clash Royale", en: "Clash Royale" },
+        label: { ru: "карта из Clash Royale", en: "card from Clash Royale" },
+        items: []
+    },
+    dota: {
+        title: { ru: "Dota 2", en: "Dota 2" },
+        label: { ru: "герой из Dota 2", en: "hero from Dota 2" },
+        items: []
+    }
+};
+
+// ─── i18n ─────────────────────────────────────────────────────
+const i18n = {
+    ru: {
+        pageTitle: "finkizet game",
+        // mode screen
+        msHeading: "Шпион",
+        msSubtitle: "Вечеринковая игра на 4–10 игроков",
+        msOnlineLabel: "Играть онлайн",
+        msOnlineSub: "Общее лобби, роли раздаёт сервер",
+        msOfflineLabel: "Играть офлайн",
+        msOfflineSub: "Один телефон — передавай по кругу",
+        backLabel: "Назад",
+        // shared
+        labelGame: "Игра",
+        helpGameMode: "Выбор игры меняет список карт/героев.",
+        spyRole: "Шпион",
+        resultTitle: "Твоя роль:",
+        // offline
+        offlineHeading: "Офлайн-режим",
+        offlineSubtitle: "Договоритесь об общем коде и количестве игроков, затем каждый вводит свой номер.",
+        labelSeed: "Общий код / seed",
+        seedPlaceholder: "Например: 548129 или 'pudge42'",
+        helpSeed: "Все игроки вводят одинаковый код.",
+        labelPlayers: "Количество игроков",
+        helpPlayers: "Максимум 10. Всегда 1 шпион, остальные получают одинаковый предмет.",
+        labelPlayerIndex: "Твой номер игрока",
+        helpPlayerIndex: "Каждый выбирает уникальный номер, не больше числа игроков.",
+        showButton: "Показать мою роль",
+        footerText: "⚠ Если кто-то введёт другой код или количество — получит другие результаты. Вводите аккуратно.",
+        errors: {
+            noSeed: "Введите общий код / seed.",
+            playersMin: "Количество игроков должно быть не меньше 2.",
+            playersMax: "Максимальное количество игроков — 10.",
+            badIndex: "Номер игрока должен быть от 1 до количества игроков.",
+            cheat: "Играем честно! Не подсматривай! Если считаете это ошибкой — выберите другой код."
         },
-        dota: {
-            title: { ru: "Dota 2", en: "Dota 2" },
-            items: [
-                        { id: "Abaddon" },
-                        { id: "Alchemist" },
-                        { id: "Ancient Apparition" },
-                        { id: "Anti-Mage" },
-                        { id: "Arc Warden" },
-                        { id: "Axe" },
-                        { id: "Bane" },
-                        { id: "Batrider" },
-                        { id: "Beastmaster" },
-                        { id: "Bloodseeker" },
-                        { id: "Bounty Hunter" },
-                        { id: "Brewmaster" },
-                        { id: "Bristleback" },
-                        { id: "Broodmother" },
-                        { id: "Centaur Warrunner" },
-                        { id: "Chaos Knight" },
-                        { id: "Chen" },
-                        { id: "Clinkz" },
-                        { id: "Clockwerk" },
-                        { id: "Crystal Maiden" },
-                        { id: "Dark Seer" },
-                        { id: "Dark Willow" },
-                        { id: "Dawnbreaker" },
-                        { id: "Dazzle" },
-                        { id: "Death Prophet" },
-                        { id: "Disruptor" },
-                        { id: "Doom" },
-                        { id: "Dragon Knight" },
-                        { id: "Drow Ranger" },
-                        { id: "Earth Spirit" },
-                        { id: "Earthshaker" },
-                        { id: "Elder Titan" },
-                        { id: "Ember Spirit" },
-                        { id: "Enchantress" },
-                        { id: "Enigma" },
-                        { id: "Faceless Void" },
-                        { id: "Grimstroke" },
-                        { id: "Gyrocopter" },
-                        { id: "Hoodwink" },
-                        { id: "Huskar" },
-                        { id: "Invoker" },
-                        { id: "Io" },
-                        { id: "Jakiro" },
-                        { id: "Juggernaut" },
-                        { id: "Keeper of the Light" },
-                        { id: "Kez" },
-                        { id: "Kunkka" },
-                        { id: "Legion Commander" },
-                        { id: "Leshrac" },
-                        { id: "Lich" },
-                        { id: "Lifestealer" },
-                        { id: "Lina" },
-                        { id: "Lion" },
-                        { id: "Lone Druid" },
-                        { id: "Luna" },
-                        { id: "Lycan" },
-                        { id: "Magnus" },
-                        { id: "Marci" },
-                        { id: "Mars" },
-                        { id: "Medusa" },
-                        { id: "Meepo" },
-                        { id: "Mirana" },
-                        { id: "Monkey King" },
-                        { id: "Morphling" },
-                        { id: "Muerta" },
-                        { id: "Naga Siren" },
-                        { id: "Nature's Prophet" },
-                        { id: "Necrophos" },
-                        { id: "Night Stalker" },
-                        { id: "Nyx Assassin" },
-                        { id: "Ogre Magi" },
-                        { id: "Omniknight" },
-                        { id: "Oracle" },
-                        { id: "Outworld Destroyer" },
-                        { id: "Pangolier" },
-                        { id: "Phantom Assassin" },
-                        { id: "Phantom Lancer" },
-                        { id: "Phoenix" },
-                        { id: "Primal Beast" },
-                        { id: "Puck" },
-                        { id: "Pudge" },
-                        { id: "Pugna" },
-                        { id: "Queen of Pain" },
-                        { id: "Razor" },
-                        { id: "Riki" },
-                        { id: "Ringmaster" },
-                        { id: "Rubick" },
-                        { id: "Sand King" },
-                        { id: "Shadow Demon" },
-                        { id: "Shadow Fiend" },
-                        { id: "Shadow Shaman" },
-                        { id: "Silencer" },
-                        { id: "Skywrath Mage" },
-                        { id: "Slardar" },
-                        { id: "Slark" },
-                        { id: "Snapfire" },
-                        { id: "Sniper" },
-                        { id: "Spectre" },
-                        { id: "Spirit Breaker" },
-                        { id: "Storm Spirit" },
-                        { id: "Sven" },
-                        { id: "Techies" },
-                        { id: "Templar Assassin" },
-                        { id: "Terrorblade" },
-                        { id: "Tidehunter" },
-                        { id: "Timbersaw" },
-                        { id: "Tinker" },
-                        { id: "Tiny" },
-                        { id: "Treant Protector" },
-                        { id: "Troll Warlord" },
-                        { id: "Tusk" },
-                        { id: "Underlord" },
-                        { id: "Undying" },
-                        { id: "Ursa" },
-                        { id: "Vengeful Spirit" },
-                        { id: "Venomancer" },
-                        { id: "Viper" },
-                        { id: "Visage" },
-                        { id: "Void Spirit" },
-                        { id: "Warlock" },
-                        { id: "Weaver" },
-                        { id: "Windranger" },
-                        { id: "Winter Wyvern" },
-                        { id: "Witch Doctor" },
-                        { id: "Wraith King" },
-                        { id: "Zeus" }
-            ],
-            label: {
-                ru: "герой из Dota 2",
-                en: "hero from Dota 2"
-            }
-        }
-    };
-
-    const i18n = {
-        ru: {
-            pageTitle: "finkizet game",
-            heading: "Шпион — мультиигра",
-            subtitle: "Выберите игру, договоритесь об одном коде и количестве игроков (максимум 10), затем каждый вводит свой номер игрока и получает роль.",
-            labelGame: "Игра",
-            helpGameMode: "От выбора игры зависит список карт/героев и формулировки.",
-            labelSeed: "Общий код / seed",
-            seedPlaceholder: "Например: 548129 или 'pudge42'",
-            helpSeed: "Все игроки должны ввести один и тот же код. Можно число или слово.",
-            labelPlayers: "Количество игроков",
-            helpPlayers: "Максимум — 10 игроков. Всегда 1 шпион, остальные получают одинаковый объект.",
-            labelPlayerIndex: "Твой номер игрока",
-            helpPlayerIndex: "Каждый выбирает свой уникальный номер. Номер не должен превышать количество игроков.",
-            showButton: "Показать мою роль",
-            resultTitle: "Твоя роль:",
-            footerText: "⚠ Если кто-то введёт другой код или количество игроков — у него будут другие результаты. Для честной игры все должны внимательно вводить данные и не подсматривать.",
-            spyRole: "Шпион",
-            createLobbyBtn: "Создать онлайн-лобби",
-            joinLobbyBtn: "Войти в лобби по коду",
-            joinLobbyLabel: "Код лобби",
-            joinLobbyPlaceholder: "Например: ABC123",
-            lobbyCreated: (code) => `Лобби создано: ${code}. Поделитесь кодом.`,
-            lobbyJoined: () => `Вы вошли в лобби. Токен сохранён локально.`,
-            leaveLobbyBtn: "Выйти из лобби",
-            startRoundBtn: "Начать раунд",
-            nextRoundBtn: "Следующий раунд",
-            lobbyWord: "Лобби",
-            inGame: "(В игре)",
-            errors: {
-                noSeed: "Введите общий код / seed.",
-                playersMin: "Количество игроков должно быть не меньше 2.",
-                playersMax: "Максимальное количество игроков — 10.",
-                badIndex: "Номер игрока должен быть от 1 до количества игроков.",
-                cheat: "Играем честно! Не подсматривай! Если вы считаете это ошибкой, выберите другой код."
-            },
-            spyText(modeTitle, label) {
-                return `Ты шпион в игре ${modeTitle}. Ты НЕ знаешь, какой ${label} выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.`;
-            },
-            nonSpyText(modeTitle, label, itemName) {
-                return `Тебе выпал ${label}: "${itemName}". У всех остальных не-шпионов такой же ${label}. Не показывай экран, просто запомни и описывай его так, чтобы шпиону было сложно понять, что именно это за ${label}.`;
-            }
+        // online
+        onlineHeading: "Онлайн-режим",
+        onlineSubtitle: "Создайте лобби и поделитесь кодом с друзьями.",
+        labelNick: "Никнейм",
+        createLobbyBtn: "Создать лобби",
+        joinLobbyLabel: "Код лобби",
+        joinLobbyPlaceholder: "Например: ABC123",
+        joinLobbyBtn: "Войти по коду",
+        leaveLobbyBtn: "Выйти из лобби",
+        startRoundBtn: "Начать раунд",
+        nextRoundBtn: "Следующий раунд",
+        lobbyWord: "Лобби",
+        inGame: "(В игре)",
+        serverWaking: "Сервер просыпается, подожди ~30 сек...",
+        spyText(modeTitle, label) {
+            return `Ты шпион в игре ${modeTitle}. Ты НЕ знаешь, какой ${label} выпал другим. Слушай, как остальные описывают его, и пытайся не спалиться.`;
         },
-        en: {
-            pageTitle: "finkizet game",
-            heading: "Spy — multi game",
-            subtitle: "Choose a game, agree on one shared code and player count (up to 10), then each player enters their number and gets a role.",
-            labelGame: "Game",
-            helpGameMode: "Game selection changes the list of cards/heroes and phrasing.",
-            labelSeed: "Shared code / seed",
-            seedPlaceholder: "Example: 548129 or 'pudge42'",
-            helpSeed: "All players must enter the same code. It can be a number or a word.",
-            labelPlayers: "Number of players",
-            helpPlayers: "Maximum is 10 players. There is always 1 spy, others get the same object.",
-            labelPlayerIndex: "Your player number",
-            helpPlayerIndex: "Each player chooses a unique number. It must not exceed the number of players.",
-            showButton: "Show my role",
-            resultTitle: "Your role:",
-            footerText: "⚠ If someone enters a different code or player count, they will get different results. For a fair game everyone should type carefully and not peek.",
-            spyRole: "Spy",
-            createLobbyBtn: "Create online lobby",
-            joinLobbyBtn: "Join lobby by code",
-            joinLobbyLabel: "Lobby code",
-            joinLobbyPlaceholder: "Example: ABC123",
-            lobbyCreated: (code) => `Lobby created: ${code}. Share the code.`,
-            lobbyJoined: () => `You joined the lobby. Token saved locally.`,
-            leaveLobbyBtn: "Leave lobby",
-            startRoundBtn: "Start round",
-            nextRoundBtn: "Next round",
-            lobbyWord: "Lobby",
-            inGame: "(In game)",
-            errors: {
-                noSeed: "Enter the shared code / seed.",
-                playersMin: "Number of players must be at least 2.",
-                playersMax: "Maximum number of players is 10.",
-                badIndex: "Player number must be between 1 and the total number of players.",
-                cheat: "Play fair! Don't peek! If you think this is a mistake, choose another code."
-            },
-            spyText(modeTitle, label) {
-                return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone else got. Listen to how they describe it and try not to get caught.`;
-            },
-            nonSpyText(modeTitle, label, itemName) {
-                return `You got a ${label}: "${itemName}". All non-spies have the same ${label}. Do not show your screen, just remember it and describe it so the spy cannot easily guess what it is.`;
-            }
+        nonSpyText(modeTitle, label, itemName) {
+            return `Тебе выпал ${label}: "${itemName}". У всех остальных не-шпионов такой же ${label}. Не показывай экран — просто запомни и описывай так, чтобы шпиону было сложно угадать.`;
         }
+    },
+    en: {
+        pageTitle: "finkizet game",
+        msHeading: "Spy",
+        msSubtitle: "Party game for 4–10 players",
+        msOnlineLabel: "Play online",
+        msOnlineSub: "Shared lobby, server assigns roles",
+        msOfflineLabel: "Play offline",
+        msOfflineSub: "One phone — pass it around",
+        backLabel: "Back",
+        labelGame: "Game",
+        helpGameMode: "Game selection changes the list of cards/heroes.",
+        spyRole: "Spy",
+        resultTitle: "Your role:",
+        offlineHeading: "Offline mode",
+        offlineSubtitle: "Agree on a shared code and player count, then each player enters their number.",
+        labelSeed: "Shared code / seed",
+        seedPlaceholder: "Example: 548129 or 'pudge42'",
+        helpSeed: "All players must enter the same code.",
+        labelPlayers: "Number of players",
+        helpPlayers: "Maximum 10 players. Always 1 spy, others get the same item.",
+        labelPlayerIndex: "Your player number",
+        helpPlayerIndex: "Each player picks a unique number, not exceeding the total count.",
+        showButton: "Show my role",
+        footerText: "⚠ If someone enters a different code or player count, they get different results. Type carefully.",
+        errors: {
+            noSeed: "Enter the shared code / seed.",
+            playersMin: "Number of players must be at least 2.",
+            playersMax: "Maximum number of players is 10.",
+            badIndex: "Player number must be between 1 and the total number of players.",
+            cheat: "Play fair! Don't peek! If you think this is a mistake, choose another code."
+        },
+        onlineHeading: "Online mode",
+        onlineSubtitle: "Create a lobby and share the code with friends.",
+        labelNick: "Nickname",
+        createLobbyBtn: "Create lobby",
+        joinLobbyLabel: "Lobby code",
+        joinLobbyPlaceholder: "Example: ABC123",
+        joinLobbyBtn: "Join by code",
+        leaveLobbyBtn: "Leave lobby",
+        startRoundBtn: "Start round",
+        nextRoundBtn: "Next round",
+        lobbyWord: "Lobby",
+        inGame: "(In game)",
+        serverWaking: "Server is waking up, please wait ~30 sec...",
+        spyText(modeTitle, label) {
+            return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone else got. Listen to how they describe it and try not to get caught.`;
+        },
+        nonSpyText(modeTitle, label, itemName) {
+            return `You got a ${label}: "${itemName}". All non-spies have the same ${label}. Do not show your screen — just remember it and describe it so the spy cannot easily guess.`;
+        }
+    }
+};
+
+// ─── Утилиты ──────────────────────────────────────────────────
+function hashStringToInt(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return h;
+}
+function mulberry32(seed) {
+    let t = seed | 0;
+    return function() {
+        t += 0x6D2B79F5; let r = t;
+        r = Math.imul(r ^ (r >>> 15), r | 1);
+        r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+        r ^= r >>> 14;
+        return (r >>> 0) / 4294967296;
     };
-
-    // Utils (hash + RNG + shuffle)
-    function hashStringToInt(str) {
-        let h = 0;
-        for (let i = 0; i < str.length; i++) {
-            h = (h * 31 + str.charCodeAt(i)) | 0;
-        }
-        return h;
+}
+function shuffleWithSeed(array, seed) {
+    const rand = mulberry32(seed);
+    const arr = array.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
+    return arr;
+}
+function getLocalizedName(item, lang) {
+    if (!item) return '';
+    if (item[lang]) return item[lang];
+    return item.id || item;
+}
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
 
-    function mulberry32(seed) {
-        let t = seed | 0;
-        return function() {
-            t += 0x6D2B79F5;
-            let r = t;
-            r = Math.imul(r ^ (r >>> 15), r | 1);
-            r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
-            r ^= r >>> 14;
-            return (r >>> 0) / 4294967296;
-        };
-    }
+// ─── DOM ──────────────────────────────────────────────────────
+const langSelect      = document.getElementById('langSelectTop');
+const modeScreen      = document.getElementById('modeScreen');
+const onlineScreen    = document.getElementById('onlineScreen');
+const offlineScreen   = document.getElementById('offlineScreen');
 
-    function shuffleWithSeed(array, seed) {
-        const rand = mulberry32(seed);
-        const arr = array.slice();
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(rand() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
+// mode screen
+const msHeading       = document.getElementById('msHeading');
+const msSubtitle      = document.getElementById('msSubtitle');
+const msOnlineLabel   = document.getElementById('msOnlineLabel');
+const msOnlineSub     = document.getElementById('msOnlineSub');
+const msOfflineLabel  = document.getElementById('msOfflineLabel');
+const msOfflineSub    = document.getElementById('msOfflineSub');
+const btnOnline       = document.getElementById('btnOnline');
+const btnOffline      = document.getElementById('btnOffline');
 
-    function getLocalizedName(item, lang) {
-        if (!item) return '';
-        if (item[lang]) {
-            return item[lang];
-        }
-        return item.id || item;
-    }
+// online
+const backBtn           = document.getElementById('backBtn');
+const onlineHeading     = document.getElementById('onlineHeading');
+const onlineSubtitle    = document.getElementById('onlineSubtitle');
+const nickInput         = document.getElementById('nickInput');
+const gameModeOnline    = document.getElementById('gameModeOnline');
+const helpGameModeOnline= document.getElementById('helpGameModeOnline');
+const labelGameOnline   = document.getElementById('labelGameOnline');
+const createLobbyBtn    = document.getElementById('createLobbyBtn');
+const joinLobbyInput    = document.getElementById('joinLobbyInput');
+const joinLobbyBtn      = document.getElementById('joinLobbyBtn');
+const leaveLobbyBtn     = document.getElementById('leaveLobbyBtn');
+const startRoundBtn     = document.getElementById('startRoundBtn');
+const nextRoundBtn      = document.getElementById('nextRoundBtn');
+const resultOnline      = document.getElementById('resultOnline');
+const resultTitleOnline = document.getElementById('resultTitleOnline');
+const roleTextOnline    = document.getElementById('roleTextOnline');
+const extraTextOnline   = document.getElementById('extraTextOnline');
+const errorBoxOnline    = document.getElementById('errorBoxOnline');
+const labelJoinLobby    = document.getElementById('labelJoinLobby');
 
-    // DOM refs
-    const langSelect = document.getElementById("langSelectTop");
-    const gameModeSelect = document.getElementById("gameMode");
-    const seedInput = document.getElementById("seedInput");
-    const playersInput = document.getElementById("playersInput");
-    const playerIndexInput = document.getElementById("playerIndexInput");
-    const showRoleBtn = document.getElementById("showRoleBtn");
-    const resultCard = document.getElementById("result");
-    const roleText = document.getElementById("roleText");
-    const extraText = document.getElementById("extraText");
-    const errorBox = document.getElementById("errorBox");
-    const createLobbyBtn = document.getElementById("createLobbyBtn");
-    const joinLobbyBtn = document.getElementById("joinLobbyBtn");
-    const joinLobbyInput = document.getElementById("joinLobbyInput");
+// offline
+const backFromOffline   = document.getElementById('backFromOffline');
+const offlineHeading    = document.getElementById('offlineHeading');
+const offlineSubtitle   = document.getElementById('offlineSubtitle');
+const gameModeOffline   = document.getElementById('gameModeOffline');
+const helpGameModeOffline=document.getElementById('helpGameModeOffline');
+const labelGameOffline  = document.getElementById('labelGameOffline');
+const seedInput         = document.getElementById('seedInput');
+const playersInput      = document.getElementById('playersInput');
+const playerIndexInput  = document.getElementById('playerIndexInput');
+const showRoleBtn       = document.getElementById('showRoleBtn');
+const resultOffline     = document.getElementById('resultOffline');
+const resultTitleOffline= document.getElementById('resultTitleOffline');
+const roleTextOffline   = document.getElementById('roleTextOffline');
+const extraTextOffline  = document.getElementById('extraTextOffline');
+const errorBoxOffline   = document.getElementById('errorBoxOffline');
+const footerTextEl      = document.getElementById('footerText');
 
-    const headingEl = document.getElementById("heading");
-    const subtitleEl = document.getElementById("subtitle");
-    const labelGameEl = document.getElementById("labelGame");
-    const helpGameModeEl = document.getElementById("helpGameMode");
-    const labelSeedEl = document.getElementById("labelSeed");
-    const helpSeedEl = document.getElementById("helpSeed");
-    const labelPlayersEl = document.getElementById("labelPlayers");
-    const helpPlayersEl = document.getElementById("helpPlayers");
-    const labelPlayerIndexEl = document.getElementById("labelPlayerIndex");
-    const helpPlayerIndexEl = document.getElementById("helpPlayerIndex");
-    const resultTitleEl = document.getElementById("resultTitle");
-    const footerTextEl = document.getElementById("footerText");
-    const labelJoinLobby = document.getElementById("labelJoinLobby");
+// ─── Навигация ────────────────────────────────────────────────
+function showScreen(name) {
+    modeScreen.style.display   = name === 'mode'    ? '' : 'none';
+    onlineScreen.style.display = name === 'online'  ? '' : 'none';
+    offlineScreen.style.display= name === 'offline' ? '' : 'none';
+}
 
-    const startRoundBtn = document.getElementById("startRoundBtn");
-    const nextRoundBtn = document.getElementById("nextRoundBtn");
-    const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
-    
-    startRoundBtn.addEventListener('click', () => {
-      const code = currentLobbyCode;
-      if (!code) return alert('No lobby code');
-      
-      socket.emit('start_round', { code, spyCount: 1 }, (resp) => {
-        if (resp && resp.error) {
-          showError(resp.error);
-        } else {
-          errorBox.style.display = 'none';
-        }
-      });
+btnOnline.addEventListener('click', () => showScreen('online'));
+btnOffline.addEventListener('click', () => showScreen('offline'));
+backBtn.addEventListener('click', () => showScreen('mode'));
+backFromOffline.addEventListener('click', () => { errorBoxOffline.style.display='none'; resultOffline.style.display='none'; showScreen('mode'); });
+
+// ─── i18n apply ───────────────────────────────────────────────
+function applyLang(lang) {
+    const t = i18n[lang];
+    document.title = t.pageTitle;
+    // mode screen
+    msHeading.textContent     = t.msHeading;
+    msSubtitle.textContent    = t.msSubtitle;
+    msOnlineLabel.textContent = t.msOnlineLabel;
+    msOnlineSub.textContent   = t.msOnlineSub;
+    msOfflineLabel.textContent= t.msOfflineLabel;
+    msOfflineSub.textContent  = t.msOfflineSub;
+    document.querySelectorAll('#backLabel, #backLabelOffline').forEach(el => el.textContent = t.backLabel);
+    // online
+    onlineHeading.textContent       = t.onlineHeading;
+    onlineSubtitle.textContent      = t.onlineSubtitle;
+    document.getElementById('labelNick').textContent = t.labelNick;
+    labelGameOnline.textContent     = t.labelGame;
+    helpGameModeOnline.textContent  = t.helpGameMode;
+    createLobbyBtn.textContent      = t.createLobbyBtn;
+    labelJoinLobby.textContent      = t.joinLobbyLabel;
+    joinLobbyInput.placeholder      = t.joinLobbyPlaceholder;
+    joinLobbyBtn.textContent        = t.joinLobbyBtn;
+    leaveLobbyBtn.textContent       = t.leaveLobbyBtn;
+    startRoundBtn.textContent       = t.startRoundBtn;
+    nextRoundBtn.textContent        = t.nextRoundBtn;
+    resultTitleOnline.textContent   = t.resultTitle;
+    // offline
+    offlineHeading.textContent      = t.offlineHeading;
+    offlineSubtitle.textContent     = t.offlineSubtitle;
+    labelGameOffline.textContent    = t.labelGame;
+    helpGameModeOffline.textContent = t.helpGameMode;
+    document.getElementById('labelSeed').textContent        = t.labelSeed;
+    seedInput.placeholder                                   = t.seedPlaceholder;
+    document.getElementById('helpSeed').textContent         = t.helpSeed;
+    document.getElementById('labelPlayers').textContent     = t.labelPlayers;
+    document.getElementById('helpPlayers').textContent      = t.helpPlayers;
+    document.getElementById('labelPlayerIndex').textContent = t.labelPlayerIndex;
+    document.getElementById('helpPlayerIndex').textContent  = t.helpPlayerIndex;
+    showRoleBtn.textContent         = t.showButton;
+    footerTextEl.textContent        = t.footerText;
+    resultTitleOffline.textContent  = t.resultTitle;
+    // options
+    ['gameModeOnline','gameModeOffline'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.querySelector('option[value="clash"]').textContent = gameModes.clash.title[lang];
+        sel.querySelector('option[value="dota"]').textContent  = gameModes.dota.title[lang];
     });
-    
-    nextRoundBtn.addEventListener('click', () => {
-      const code = currentLobbyCode;
-      if (!code) return alert('No lobby code');
-      
-      socket.emit('end_round', { code }, (resp) => {
-        if (resp && resp.error) {
-          showError(resp.error);
-        } else {
-          resultCard.style.display = 'none';
-        }
-      });
-    });
+}
 
-    function applyLang(lang) {
-        const t = i18n[lang];
-        document.title = t.pageTitle;
-        headingEl.textContent = t.heading;
-        subtitleEl.textContent = t.subtitle;
-        labelGameEl.textContent = t.labelGame;
-        helpGameModeEl.textContent = t.helpGameMode;
-        labelSeedEl.textContent = t.labelSeed;
-        seedInput.placeholder = t.seedPlaceholder;
-        helpSeedEl.textContent = t.helpSeed;
-        labelPlayersEl.textContent = t.labelPlayers;
-        helpPlayersEl.textContent = t.helpPlayers;
-        labelPlayerIndexEl.textContent = t.labelPlayerIndex;
-        helpPlayerIndexEl.textContent = t.helpPlayerIndex;
-        showRoleBtn.textContent = t.showButton;
-        resultTitleEl.textContent = t.resultTitle;
-        footerTextEl.textContent = t.footerText;
+langSelect.addEventListener('change', () => applyLang(langSelect.value));
+applyLang('ru');
 
-        labelJoinLobby.textContent = t.joinLobbyLabel;
-        joinLobbyInput.placeholder = t.joinLobbyPlaceholder;
-        createLobbyBtn.textContent = t.createLobbyBtn;
-        joinLobbyBtn.textContent = t.joinLobbyBtn;
+// ─── Офлайн логика ────────────────────────────────────────────
+function showErrorOffline(msg) { errorBoxOffline.textContent = msg; errorBoxOffline.style.display = 'block'; }
 
-        leaveLobbyBtn.textContent = t.leaveLobbyBtn;
-        startRoundBtn.textContent = t.startRoundBtn;
-        nextRoundBtn.textContent = t.nextRoundBtn;
-        
-        const clashOption = gameModeSelect.querySelector('option[value="clash"]');
-        const dotaOption = gameModeSelect.querySelector('option[value="dota"]');
-        clashOption.textContent = gameModes.clash.title[lang];
-        dotaOption.textContent = gameModes.dota.title[lang];
+showRoleBtn.addEventListener('click', () => {
+    errorBoxOffline.style.display = 'none';
+    resultOffline.style.display   = 'none';
+    const lang = langSelect.value;
+    const t    = i18n[lang];
+    if (!gameModes[gameModeOffline.value] || gameModes[gameModeOffline.value].items.length === 0) {
+        showErrorOffline('Предметы ещё загружаются, попробуй через секунду.');
+        return;
     }
+    const seedStr     = seedInput.value.trim();
+    const playersCount= Number(playersInput.value);
+    const playerIndex = Number(playerIndexInput.value);
+    const modeKey     = gameModeOffline.value;
+    const mode        = gameModes[modeKey];
 
-    langSelect.addEventListener("change", () => {
-        applyLang(langSelect.value);
-        errorBox.style.display = "none";
-        resultCard.style.display = "none";
+    if (!Number.isFinite(playersCount) || playersCount < 2) { showErrorOffline(t.errors.playersMin); return; }
+    if (playersCount > 10) { showErrorOffline(t.errors.playersMax); return; }
+    if (!Number.isFinite(playerIndex) || playerIndex < 1 || playerIndex > playersCount) { showErrorOffline(t.errors.badIndex); return; }
+    if (!seedStr) { showErrorOffline(t.errors.noSeed); return; }
 
-        const code = currentLobbyCode;
-        if (code) {
-            socket.emit('get_lobby', { code }, (r) => {
-                if (r && r.ok) renderLobbyState(r.lobby);
-            });
-        }
-    });
+    const sessionKey = 'finkizet_seed_used_' + modeKey + '_' + seedStr;
+    if (sessionStorage.getItem(sessionKey)) { showErrorOffline(t.errors.cheat); return; }
+    sessionStorage.setItem(sessionKey, '1');
 
-    function showError(msg) {
-        errorBox.textContent = msg;
-        errorBox.style.display = "block";
+    let seedNum = Number(seedStr);
+    if (!Number.isFinite(seedNum)) seedNum = hashStringToInt(seedStr);
+    if (seedNum === 0) seedNum = 1;
+
+    const sharedItem    = shuffleWithSeed(mode.items, seedNum + 1)[0];
+    const roles         = [];
+    for (let i = 0; i < playersCount - 1; i++) roles.push(sharedItem);
+    roles.push('spy');
+    const myRole = shuffleWithSeed(roles, seedNum + 2)[playerIndex - 1];
+
+    if (myRole === 'spy') {
+        roleTextOffline.textContent  = t.spyRole;
+        extraTextOffline.textContent = t.spyText(mode.title[lang], mode.label[lang]);
+    } else {
+        const itemName = getLocalizedName(myRole, lang);
+        roleTextOffline.textContent  = itemName;
+        extraTextOffline.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], itemName);
     }
+    resultOffline.style.display = 'block';
+});
 
-    // Main "show role" logic — supports online (if lobby code + token) and offline (local seed)
-    showRoleBtn.addEventListener("click", async function () {
-        errorBox.style.display = "none";
-        resultCard.style.display = "none";
+// ─── Загрузка предметов из статических JSON (GitHub Pages) ──
+async function loadGameItems() {
+    try {
+        const [clashResp, dotaResp] = await Promise.all([
+            fetch('./game_items_clash.json'),
+            fetch('./game_items_dota.json')
+        ]);
+        const clash = await clashResp.json();
+        const dota  = await dotaResp.json();
+        gameModes.clash.items = clash.items;
+        gameModes.dota.items  = dota.items;
+    } catch (e) {
+        console.warn('Не удалось загрузить предметы:', e);
+    }
+}
+loadGameItems();
 
-        const lang = langSelect.value;
-        const t = i18n[lang];
-
-        const seedStr = seedInput.value.trim();
-        const playersCount = Number(playersInput.value);
-        const playerIndex = Number(playerIndexInput.value);
-        const modeKey = gameModeSelect.value;
-        const mode = gameModes[modeKey];
-
-        if (!modeKey) {
-            showError("Choose a game.");
-            return;
-        }
-
-        if (!Number.isFinite(playersCount) || playersCount < 2) {
-            showError(t.errors.playersMin);
-            return;
-        }
-        if (playersCount > 10) {
-            showError(t.errors.playersMax);
-            return;
-        }
-        if (!Number.isFinite(playerIndex) || playerIndex < 1 || playerIndex > playersCount) {
-            showError(t.errors.badIndex);
-            return;
-        }
-
-        // If user provided lobby code -> try online flow
-        const lobbyIdRaw = (joinLobbyInput.value || '').trim();
-        const lobbyId = lobbyIdRaw ? lobbyIdRaw.toUpperCase() : null;
-
-        if (lobbyId) {
-            // online mode: require token saved locally
-            const token = localStorage.getItem('lobby_token_' + lobbyId);
-            if (!token) {
-                showError("No token found for this lobby. First click 'Join lobby' and save your token.");
-                return;
-            }
-            // request role from server
-            const resp = await getRoleFromLobby(lobbyId, token);
-            if (!resp) {
-                showError("Network error");
-                return;
-            }
-            if (resp.error) {
-                showError(resp.error);
-                return;
-            }
-            const myRole = resp.role;
-            // myRole can be string 'spy' or object {id:..., ru:...}
-            if ((typeof myRole === 'string' && myRole === 'spy') || (myRole && myRole.id === 'spy')) {
-                roleText.textContent = t.spyRole;
-                extraText.textContent = t.spyText(mode.title[lang], mode.label[lang]);
-            } else {
-                const itemName = getLocalizedName(myRole, lang);
-                roleText.textContent = itemName;
-                extraText.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], itemName);
-            }
-            resultCard.style.display = "block";
-            return;
-        }
-
-        // OFFLINE flow (legacy): one seed -> one show per sessionStorage (soft anti-cheat)
-        if (!seedStr) {
-            showError(t.errors.noSeed);
-            return;
-        }
-
-        // session anti-cheat (only for offline)
-        const sessionKey = "finkizet_seed_used_" + modeKey + "_" + seedStr;
-        if (sessionStorage.getItem(sessionKey)) {
-            showError(t.errors.cheat);
-            return;
-        }
-        sessionStorage.setItem(sessionKey, "1");
-
-        let seedNum = Number(seedStr);
-        if (!Number.isFinite(seedNum)) {
-            seedNum = hashStringToInt(seedStr);
-        }
-        if (seedNum === 0) seedNum = 1;
-
-        const shuffledItems = shuffleWithSeed(mode.items, seedNum + 1);
-        const sharedItem = shuffledItems[0];
-
-        const roles = [];
-        for (let i = 0; i < playersCount - 1; i++) roles.push(sharedItem);
-        roles.push("spy");
-
-        const shuffledRoles = shuffleWithSeed(roles, seedNum + 2);
-        const myRole = shuffledRoles[playerIndex - 1];
-
-        if (myRole === "spy") {
-            roleText.textContent = t.spyRole;
-            extraText.textContent = t.spyText(mode.title[lang], mode.label[lang]);
-        } else {
-            const itemName = getLocalizedName(myRole, lang);
-            roleText.textContent = itemName;
-            extraText.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], itemName);
-        }
-
-        resultCard.style.display = "block";
-    });
-
-    // Start with Russian
-    applyLang("ru");
-
-    // ---------- Socket client integration ----------
-const SOCKET_URL = SERVER_BASE;
-const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
-
-// текущий код лобби — в памяти, не в localStorage
+// ─── Socket / Онлайн логика ───────────────────────────────────
+const socket = io(SERVER_BASE, { transports: ['websocket', 'polling'] });
 let currentLobbyCode = null;
 
-// nickname handling
 const NICK_KEY = 'finkizet_nick';
-const nickInput = document.getElementById('nickInput');
 let localNick = localStorage.getItem(NICK_KEY) || '';
 if (localNick) nickInput.value = localNick;
 
+function showErrorOnline(msg) { errorBoxOnline.textContent = msg; errorBoxOnline.style.display = 'block'; }
+
 nickInput.addEventListener('input', () => {
-  const val = nickInput.value.trim();
-  if (!val) return;
-  localNick = val;
-  localStorage.setItem(NICK_KEY, localNick);
-  socket.emit('set_nick', localNick);
-  console.log('[nick] set_nick ->', localNick);
+    const val = nickInput.value.trim();
+    if (!val) return;
+    localNick = val;
+    localStorage.setItem(NICK_KEY, localNick);
+    socket.emit('set_nick', localNick);
 });
 
-// смена темы игры в лобби
-gameModeSelect.addEventListener('change', () => {
-  console.log('[game] change ->', gameModeSelect.value, 'lobby:', currentLobbyCode);
-  if (!currentLobbyCode) return;
-  socket.emit('change_game', { code: currentLobbyCode, gameKey: gameModeSelect.value }, (resp) => {
-    console.log('[game] change_game resp:', resp);
-    if (resp && resp.error) showError(resp.error);
-  });
+gameModeOnline.addEventListener('change', () => {
+    if (!currentLobbyCode) return;
+    socket.emit('change_game', { code: currentLobbyCode, gameKey: gameModeOnline.value }, (resp) => {
+        if (resp && resp.error) showErrorOnline(resp.error);
+    });
 });
 
 socket.on('connect', () => {
-  const nick = nickInput.value.trim() || localNick || 'Player';
-  socket.emit('set_nick', nick);
+    const nick = nickInput.value.trim() || localNick || 'Player';
+    socket.emit('set_nick', nick);
 });
+socket.on('connect_error', () => showErrorOnline(i18n[langSelect.value].serverWaking));
+socket.on('nick_set', (nick) => { localNick = nick; localStorage.setItem(NICK_KEY, nick); });
 
-socket.on('connect_error', () => {
-  showError('Сервер просыпается, подожди ~30 сек...');
-});
-
-socket.on('nick_set', (nick) => {
-  localNick = nick;
-  localStorage.setItem(NICK_KEY, nick);
-});
-
+// динамический блок списка игроков
 const lobbyListEl = document.createElement('div');
 lobbyListEl.className = 'result-card';
 lobbyListEl.style.display = 'none';
 joinLobbyInput.after(lobbyListEl);
 
-// Create lobby
+// создать лобби
 createLobbyBtn.addEventListener('click', () => {
-  const modeKey = gameModeSelect.value;
-  const t = i18n[langSelect.value];
-  
-  if (!modeKey) { showError("Choose a game."); return; }
-  
-  createLobbyBtn.disabled = true;
-  errorBox.style.display = "none";
-  
-  // Для онлайн-лобби всегда используем максимум 10 игроков
-  socket.emit('create_lobby', { gameKey: modeKey, playersCount: 10 }, (resp) => {
-    createLobbyBtn.disabled = false;
-    if (resp.error) { showError(resp.error); return; }
-    
-    localStorage.setItem('lastLobbyId', resp.code);
-    currentLobbyCode = resp.code;
-    joinLobbyInput.value = resp.code;
-    
-    socket.emit('get_lobby', { code: resp.code }, (r) => {
-      if (r.ok) renderLobbyState(r.lobby);
+    errorBoxOnline.style.display = 'none';
+    createLobbyBtn.disabled = true;
+    socket.emit('create_lobby', { gameKey: gameModeOnline.value, playersCount: 10 }, (resp) => {
+        createLobbyBtn.disabled = false;
+        if (resp.error) { showErrorOnline(resp.error); return; }
+        currentLobbyCode = resp.code;
+        joinLobbyInput.value = resp.code;
+        socket.emit('get_lobby', { code: resp.code }, (r) => { if (r.ok) renderLobbyState(r.lobby); });
     });
-  });
 });
 
-// Join lobby
+// войти в лобби
 joinLobbyBtn.addEventListener('click', () => {
-  const code = (joinLobbyInput.value||'').trim().toUpperCase();
-  const t = i18n[langSelect.value];
-  if (!code) { showError('Enter lobby code'); return; }
-  
-  joinLobbyBtn.disabled = true;
-  errorBox.style.display = "none";
-  
-  // Отправляем index: 'auto' для автовыбора
-  socket.emit('join_lobby', { code, index: 'auto' }, (resp) => {
-    joinLobbyBtn.disabled = false;
-    if (resp.error) { showError(resp.error); return; }
-    
-    localStorage.setItem('lastLobbyId', resp.code);
-    currentLobbyCode = resp.code;
-    playerIndexInput.value = resp.yourIndex; // Показываем выданный индекс
-    
-    socket.emit('get_lobby', { code: resp.code }, (r) => {
-      if (r.ok) renderLobbyState(r.lobby);
+    const code = (joinLobbyInput.value || '').trim().toUpperCase();
+    if (!code) { showErrorOnline('Введи код лобби'); return; }
+    errorBoxOnline.style.display = 'none';
+    joinLobbyBtn.disabled = true;
+    socket.emit('join_lobby', { code, index: 'auto' }, (resp) => {
+        joinLobbyBtn.disabled = false;
+        if (resp.error) { showErrorOnline(resp.error); return; }
+        currentLobbyCode = resp.code;
+        socket.emit('get_lobby', { code: resp.code }, (r) => { if (r.ok) renderLobbyState(r.lobby); });
     });
-  });
 });
 
+// начать раунд
+startRoundBtn.addEventListener('click', () => {
+    socket.emit('start_round', { code: currentLobbyCode, spyCount: 1 }, (resp) => {
+        if (resp && resp.error) showErrorOnline(resp.error);
+        else errorBoxOnline.style.display = 'none';
+    });
+});
 
+// следующий раунд
+nextRoundBtn.addEventListener('click', () => {
+    socket.emit('end_round', { code: currentLobbyCode }, (resp) => {
+        if (resp && resp.error) showErrorOnline(resp.error);
+        else resultOnline.style.display = 'none';
+    });
+});
+
+// выйти из лобби
+leaveLobbyBtn.addEventListener('click', () => {
+    if (!currentLobbyCode) return;
+    socket.emit('leave_lobby', {}, (resp) => {
+        if (resp && resp.ok) {
+            currentLobbyCode = null;
+            joinLobbyInput.value = '';
+            renderLobbyState(null);
+        }
+    });
+});
+
+// ─── Рендер состояния лобби ───────────────────────────────────
 function renderLobbyState(state) {
-  const lang = langSelect.value;
-  const t = i18n[lang];
-    
-  if (!state) { 
-    // Вышли из лобби - показываем весь offline интерфейс
-    lobbyListEl.innerHTML = ''; 
-    lobbyListEl.style.display = 'none';
-    leaveLobbyBtn.style.display = 'none';
-    startRoundBtn.style.display = 'none';
-    nextRoundBtn.style.display = 'none';
-    createLobbyBtn.style.display = 'block';
-    joinLobbyBtn.style.display = 'block';
-    showRoleBtn.style.display = 'block';
-    
-    // Показать все поля для offline режима
-    labelGameEl.style.display = 'block';
-    gameModeSelect.style.display = 'block';
-    helpGameModeEl.style.display = 'block';
-    
-    labelSeedEl.style.display = 'block';
-    seedInput.style.display = 'block';
-    helpSeedEl.style.display = 'block';
-    
-    labelPlayersEl.style.display = 'block';
-    playersInput.style.display = 'block';
-    helpPlayersEl.style.display = 'block';
-    
-    labelPlayerIndexEl.style.display = 'block';
-    playerIndexInput.style.display = 'block';
-    helpPlayerIndexEl.style.display = 'block';
-    
-    return; 
-  }
-  
-  // В лобби - показываем lobby UI
-  lobbyListEl.style.display = 'block';
-  leaveLobbyBtn.style.display = 'block';
-  createLobbyBtn.style.display = 'none';
-  joinLobbyBtn.style.display = 'none';
-  showRoleBtn.style.display = 'none';
-  
-  // Скрыть offline поля
-  labelSeedEl.style.display = 'none';
-  seedInput.style.display = 'none';
-  helpSeedEl.style.display = 'none';
-  
-  labelPlayersEl.style.display = 'none';
-  playersInput.style.display = 'none';
-  helpPlayersEl.style.display = 'none';
-  
-  labelPlayerIndexEl.style.display = 'none';
-  playerIndexInput.style.display = 'none';
-  helpPlayerIndexEl.style.display = 'none';
-  
-  // Проверяем админ ли мы
-  const isAdmin = (state.adminSocketId === socket.id);
+    const lang = langSelect.value;
+    const t    = i18n[lang];
+    if (!state) {
+        lobbyListEl.style.display  = 'none';
+        leaveLobbyBtn.style.display= 'none';
+        startRoundBtn.style.display= 'none';
+        nextRoundBtn.style.display = 'none';
+        createLobbyBtn.style.display = 'block';
+        joinLobbyBtn.style.display   = 'block';
+        labelGameOnline.style.display    = 'block';
+        gameModeOnline.style.display     = 'block';
+        helpGameModeOnline.style.display = 'block';
+        return;
+    }
+    const isAdmin = (state.adminSocketId === socket.id);
 
-  // синхронизируем селект темы с состоянием лобби
-  if (gameModeSelect.value !== state.gameKey) {
-    gameModeSelect.value = state.gameKey;
-  }
-  
-  // Game selector - только для админа
-  if (isAdmin) {
-    labelGameEl.style.display = 'block';
-    gameModeSelect.style.display = 'block';
-    helpGameModeEl.style.display = 'block';
-  } else {
-    labelGameEl.style.display = 'none';
-    gameModeSelect.style.display = 'none';
-    helpGameModeEl.style.display = 'none';
-  }
-  
-  // Если раунд идёт - показываем "Следующий раунд", иначе "Начать раунд"
-  if (state.state === 'in-round') {
-    startRoundBtn.style.display = 'none';
-    nextRoundBtn.style.display = isAdmin ? 'block' : 'none';
-  } else {
-    startRoundBtn.style.display = isAdmin ? 'block' : 'none';
-    nextRoundBtn.style.display = 'none';
-  }
-  
-  const playersHtml = state.players
-    .sort((a,b) => a.index - b.index)
-    .map(p => {
-      const isPlayerAdmin = (p.socketId === state.adminSocketId);
-      return `<div class="lobby-player">${p.index}. ${escapeHtml(p.nick)} ${isPlayerAdmin ? ' (admin)' : ''}</div>`;
-    }).join('');
-    
-  lobbyListEl.innerHTML = `
-    <div class="lobby-box">
-      <div><b>${t.lobbyWord}</b> ${state.code} — ${state.players.length}/${state.playersCount} ${state.state === 'in-round' ? t.inGame : ''}</div>
-      <div>${playersHtml}</div>
-    </div>
-  `;
+    createLobbyBtn.style.display = 'none';
+    joinLobbyBtn.style.display   = 'none';
+    lobbyListEl.style.display    = 'block';
+    leaveLobbyBtn.style.display  = 'block';
+
+    // тема — только у админа
+    labelGameOnline.style.display    = isAdmin ? 'block' : 'none';
+    gameModeOnline.style.display     = isAdmin ? 'block' : 'none';
+    helpGameModeOnline.style.display = isAdmin ? 'block' : 'none';
+    if (gameModeOnline.value !== state.gameKey) gameModeOnline.value = state.gameKey;
+
+    if (state.state === 'in-round') {
+        startRoundBtn.style.display = 'none';
+        nextRoundBtn.style.display  = isAdmin ? 'block' : 'none';
+    } else {
+        startRoundBtn.style.display = isAdmin ? 'block' : 'none';
+        nextRoundBtn.style.display  = 'none';
+    }
+
+    const playersHtml = state.players
+        .sort((a, b) => a.index - b.index)
+        .map(p => {
+            const admin = p.socketId === state.adminSocketId ? ' (admin)' : '';
+            return `<div class="lobby-player">${p.index}. ${escapeHtml(p.nick)}${admin}</div>`;
+        }).join('');
+
+    lobbyListEl.innerHTML = `
+        <div class="lobby-box">
+            <div><b>${t.lobbyWord}</b> ${state.code} — ${state.players.length}/${state.playersCount} ${state.state === 'in-round' ? t.inGame : ''}</div>
+            <div>${playersHtml}</div>
+        </div>`;
 }
 
-// escape helper
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+// ─── Socket события ───────────────────────────────────────────
+socket.on('lobby_update',  (s) => renderLobbyState(s));
+socket.on('round_started', (s) => renderLobbyState(s));
+socket.on('round_ended',   (s) => renderLobbyState(s));
 
-
-// listen for lobby updates broadcast
-socket.on('lobby_update', (state) => {
-  renderLobbyState(state);
-});
-
-// private role message
-socket.on('role_assigned', ({ role, index, sharedLabel }) => {
-  // show role to user — можно использовать существующий UI resultCard
-  if (role && (role.id === 'spy' || role === 'spy')) {
-    roleText.textContent = i18n[langSelect.value].spyRole;
-    extraText.textContent = i18n[langSelect.value].spyText(gameModes[sharedLabel].title[langSelect.value], gameModes[sharedLabel].label[langSelect.value]);
-  } else {
-    const name = getLocalizedName(role, langSelect.value);
-    roleText.textContent = name;
-    extraText.textContent = i18n[langSelect.value].nonSpyText(gameModes[sharedLabel].title[langSelect.value], gameModes[sharedLabel].label[langSelect.value], name);
-  }
-  resultCard.style.display = 'block';
-});
-
-// round started/ended notifications
-socket.on('round_started', (state) => {
-  renderLobbyState(state);
-});
-socket.on('round_ended', (state) => {
-  renderLobbyState(state);
-});
-
-// handle kicked
-socket.on('kicked', ({ reason }) => {
-  alert('Тебя кикнули: ' + (reason||''));
-  currentLobbyCode = null;
-  localStorage.removeItem('lastLobbyId');
-  renderLobbyState(null);
-});
-
-// Обработчик выхода
-leaveLobbyBtn.addEventListener('click', () => {
-  if (!currentLobbyCode) return;
-  
-  socket.emit('leave_lobby', {}, (resp) => {
-    if (resp && resp.ok) {
-      currentLobbyCode = null;
-      localStorage.removeItem('lastLobbyId');
-      joinLobbyInput.value = '';
-      renderLobbyState(null);
+socket.on('role_assigned', ({ role, sharedLabel }) => {
+    const lang = langSelect.value;
+    const t    = i18n[lang];
+    const mode = gameModes[sharedLabel];
+    if (role && (role.id === 'spy' || role === 'spy')) {
+        roleTextOnline.textContent  = t.spyRole;
+        extraTextOnline.textContent = t.spyText(mode.title[lang], mode.label[lang]);
+    } else {
+        const name = getLocalizedName(role, lang);
+        roleTextOnline.textContent  = name;
+        extraTextOnline.textContent = t.nonSpyText(mode.title[lang], mode.label[lang], name);
     }
-  });
+    resultOnline.style.display = 'block';
 });
 
+socket.on('kicked', ({ reason }) => {
+    alert('Тебя кикнули: ' + (reason || ''));
+    currentLobbyCode = null;
+    renderLobbyState(null);
+});
 </script>
 </body>
 </html>
