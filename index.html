@@ -786,10 +786,29 @@ socket.on('kicked', ({ reason }) => {
 // ─── Dev: просмотр лобби через консоль ───────────────────────
 // nrsc [n] — установить кол-во шпионов на следующий раунд
 // nrsc reset — вернуть случайный режим
-window.nrsc = window.nextroundspycount = function(count) {
+async function getAdminPassword() {
+    let pwd = sessionStorage.getItem('spy_admin_pwd');
+    if (pwd) return pwd;
+    pwd = prompt('Пароль администратора:');
+    if (!pwd) return null;
+    // проверяем пароль через сервер
+    const resp = await fetch(SERVER_BASE + '/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+    });
+    if (!resp.ok) { console.warn('Неверный пароль'); return null; }
+    sessionStorage.setItem('spy_admin_pwd', pwd);
+    console.log('✅ Авторизован до конца сеанса');
+    return pwd;
+}
+
+window.nrsc = window.nextroundspycount = async function(count) {
     if (!currentLobbyCode) { console.warn('Ты не в лобби'); return; }
+    const password = await getAdminPassword();
+    if (!password) return;
     const isReset = count === 'reset' || count === null || count === undefined;
-    socket.emit('set_next_spy_count', { code: currentLobbyCode, count: isReset ? null : Number(count) }, (resp) => {
+    socket.emit('set_next_spy_count', { code: currentLobbyCode, count: isReset ? null : Number(count), password }, (resp) => {
         if (!resp) { console.warn('Нет ответа от сервера'); return; }
         if (resp.error) { console.warn('Ошибка:', resp.error); return; }
         if (resp.mode === 'random') console.log('✅ Следующий раунд: случайное кол-во шпионов (default)');
@@ -800,7 +819,9 @@ window.nrsc = window.nextroundspycount = function(count) {
 window.debugLobbies = async function() {
     try {
         if (!socket.id) { console.warn('Сокет не подключён'); return; }
-        const resp = await fetch(SERVER_BASE + '/api/lobbies/debug?sid=' + socket.id);
+        const password = await getAdminPassword();
+        if (!password) return;
+        const resp = await fetch(SERVER_BASE + '/api/lobbies/debug?sid=' + encodeURIComponent(socket.id) + '&password=' + encodeURIComponent(password));
         if (!resp.ok) { console.warn('Сервер вернул', resp.status); return; }
         const data = await resp.json();
         console.group('🕵 Активные лобби (' + data.count + ')');
