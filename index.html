@@ -455,7 +455,7 @@
             <div class="col-header" id="chatHeader">💬 Чат лобби</div>
             <div id="chatMessages"></div>
             <div id="chatInputRow">
-                <input id="chatInput" type="text" maxlength="300" id="chatInputField" />
+                <input id="chatInput" type="text" maxlength="300" />
                 <button id="chatSendBtn" type="button">→</button>
             </div>
         </div>
@@ -517,7 +517,7 @@
             <div id="finishVotePanel">
                 <div class="fv-title" id="fvTitle">🏁 Завершить матч</div>
                 <div id="finishVoteProgress"></div>
-                <div id="finishVoteButtons" style="display:flex;gap:6px;margin-top:8px;display:none;">
+                <div id="finishVoteButtons" style="gap:6px;margin-top:8px;display:none;">
                     <button id="finishYesBtn" class="btn-success btn-sm" type="button" style="flex:1;"></button>
                     <button id="finishNoBtn" class="btn-danger btn-sm" type="button" style="flex:1;"></button>
                 </div>
@@ -579,8 +579,7 @@
 <script>
 const SERVER_BASE = "https://spy-game-clr8.onrender.com";
 
-// ─── keepalive ──────────────────────────────────────────────────
-setInterval(() => { if (socket.connected) socket.emit('ping_keepalive'); }, 9 * 60 * 1000);
+// ─── keepalive — moved after socket init below ──────────────────
 
 // ─── game data ──────────────────────────────────────────────────
 const gameModes = {
@@ -996,7 +995,7 @@ function stopLobbyTimer() {
 }
 
 // mark server offline if lobby dies (user is in lobby but connection dropped)
-socket_events_post_init = []; // filled after socket created
+let socket_events_post_init = []; // filled after socket created
 
 // ─── offline logic ──────────────────────────────────────────────
 function showErrorOffline(msg) { errorBoxOffline.textContent = msg; errorBoxOffline.style.display = 'block'; }
@@ -1048,6 +1047,9 @@ loadGameItems();
 // ─── Socket ──────────────────────────────────────────────────────
 const socket = io(SERVER_BASE, { transports: ['websocket', 'polling'] });
 
+// ─── keepalive ──────────────────────────────────────────────────
+setInterval(() => { if (socket.connected) socket.emit('ping_keepalive'); }, 9 * 60 * 1000);
+
 if (localNick) nickInput.value = localNick;
 
 function showErrorOnline(msg) { errorBoxOnline.textContent = msg; errorBoxOnline.style.display = 'block'; }
@@ -1090,14 +1092,15 @@ function stopWakeBump() {
 }
 
 socket.on('connect', () => {
+    console.log('[socket] connected, id:', socket.id);
     const nick = nickInput.value.trim() || localNick || 'Player';
     socket.emit('set_nick', nick);
     setServerStatus('online');
     stopWakeBump();
 });
-socket.on('connect_error', () => { setServerStatus('offline'); startWakeBump(); });
-socket.on('disconnect', () => {
-    setServerStatus('offline');
+socket.on('connect_error', (err) => { console.warn('[socket] connect_error:', err.message); setServerStatus('offline'); startWakeBump(); });
+socket.on('disconnect', (reason) => {
+    console.warn('[socket] disconnected:', reason);
     // if in lobby — color indicator red (already done by setServerStatus)
     // stop lobby timer
     stopLobbyTimer();
@@ -1110,6 +1113,7 @@ createLobbyBtn.addEventListener('click', () => {
     errorBoxOnline.style.display = 'none';
     createLobbyBtn.disabled = true;
     socket.emit('create_lobby', { gameKey: gameModeOnline.value }, (resp) => {
+        console.log('[lobby] create_lobby resp:', resp);
         createLobbyBtn.disabled = false;
         if (resp.error) { showErrorOnline(resp.error); return; }
         currentLobbyCode = resp.code;
@@ -1125,6 +1129,7 @@ joinLobbyBtn.addEventListener('click', () => {
     errorBoxOnline.style.display = 'none';
     joinLobbyBtn.disabled = true;
     socket.emit('join_lobby', { code, index: 'auto' }, (resp) => {
+        console.log('[lobby] join_lobby resp:', resp);
         joinLobbyBtn.disabled = false;
         if (resp.error) { showErrorOnline(resp.error); return; }
         currentLobbyCode = resp.code;
@@ -1136,6 +1141,7 @@ joinLobbyBtn.addEventListener('click', () => {
 
 // ─── enter lobby screen ─────────────────────────────────────────
 function enterLobbyScreen(state) {
+    console.log('[lobby] enterLobbyScreen, code:', state?.code);
     showScreen('lobby');
     chatMessages.innerHTML = '';
     spyGuessUsed = false; selectedGuessItem = null;
@@ -1157,6 +1163,7 @@ function showCenterError(msg) { centerError.textContent = msg; centerError.style
 // ─── render lobby state ─────────────────────────────────────────
 function renderLobbyState(state) {
     if (!state) return;
+    console.log('[lobby] renderLobbyState:', state.state, '| players:', state.players?.length);
     currentLobbyState = state;
     const lang = langSelect.value, t = i18n[lang];
     const isAdmin = state.adminSocketId === socket.id;
