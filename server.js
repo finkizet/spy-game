@@ -79,7 +79,49 @@ setInterval(() => {
 
 // REST endpoints for debug/info
 app.get('/', (req, res) => res.json({ ok: true }));
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ ok: true, version: 2, features: ['change_game', 'nick_in_lobby'] }));
+
+// Debug endpoint — просмотр всех лобби через консоль браузера
+app.get('/api/lobbies/debug', (req, res) => {
+  const sid = req.query.sid;
+  if (!sid) return res.status(403).json({ error: 'Forbidden' });
+  // проверяем что этот socket.id является админом хотя бы одного лобби
+  const isAdmin = Object.values(LOBBIES).some(l => l.adminSocketId === sid);
+  if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
+  const lobbies = Object.values(LOBBIES).map(l => {
+    let roundInfo = null;
+    if (l.round) {
+      const spies = Object.entries(l.round.assigned)
+        .filter(([,role]) => role && role.id === 'spy')
+        .map(([idx]) => {
+          const p = Object.values(l.players).find(p => p.index === Number(idx));
+          return { index: Number(idx), nick: p ? p.nick : '?' };
+        });
+      roundInfo = {
+        startedAt: l.round.startedAt,
+        sharedItem: l.round.sharedItem,
+        spyCount: l.round.spyCount,
+        spies
+      };
+    }
+    return {
+      code: l.code,
+      gameKey: l.gameKey,
+      state: l.state,
+      createdAt: l.createdAt,
+      nextSpyCount: l.nextSpyCount !== undefined && l.nextSpyCount !== null
+        ? { mode: 'set', count: l.nextSpyCount }
+        : { mode: 'random' },
+      round: roundInfo,
+      players: Object.entries(l.players).map(([sid, p]) => ({
+        index: p.index,
+        nick: p.nick,
+        isAdmin: sid === l.adminSocketId
+      }))
+    };
+  });
+  res.json({ count: lobbies.length, lobbies });
+});
 
 // Socket.IO events
 io.on('connection', (socket) => {
@@ -90,6 +132,26 @@ io.on('connection', (socket) => {
   socket.on('set_nick', (nick) => {
     socket.data.nick = typeof nick === 'string' ? nick.slice(0, 32) : `Player${socket.id.slice(0,4)}`;
     socket.emit('nick_set', socket.data.nick);
+    console.log('[set_nick]', socket.id, '->', socket.data.nick);
+    const code = socket.data.lobby;
+    if (code && LOBBIES[code] && LOBBIES[code].players[socket.id]) {
+      LOBBIES[code].players[socket.id].nick = socket.data.nick;
+      io.to(code).emit('lobby_update', publicLobbyState(LOBBIES[code]));
+      console.log('[set_nick] updated lobby', code);
+    }
+  });
+
+  socket.on('change_game', ({ code, gameKey }, cb) => {
+    console.log('[change_game]', socket.id, code, gameKey);
+    const lobby = LOBBIES[code];
+    if (!lobby) { console.log('[change_game] lobby not found'); if (cb) cb({ error: 'Lobby not found' }); return; }
+    if (lobby.adminSocketId !== socket.id) { console.log('[change_game] not admin'); if (cb) cb({ error: 'Not admin' }); return; }
+    if (lobby.state === 'in-round') { if (cb) cb({ error: 'Round in progress' }); return; }
+    if (!GAME_ITEMS[gameKey] || GAME_ITEMS[gameKey].length === 0) { if (cb) cb({ error: 'Unknown game' }); return; }
+    lobby.gameKey = gameKey;
+    io.to(code).emit('lobby_update', publicLobbyState(lobby));
+    console.log('[change_game] ok, new gameKey:', gameKey);
+    if (cb) cb({ ok: true });
   });
 
   // create lobby
@@ -190,19 +252,32 @@ io.on('connection', (socket) => {
     if (cb) cb({ ok: true });
   });
 
-  socket.on('start_round', ({ code, spyCount = 1, theme = null }, cb) => {
+  socket.on('start_round', ({ code, theme = null }, cb) => {
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
-    
-    // ИЗМЕНЕНО: берём текущее количество игроков, а не lobby.playersCount
+
     const currentPlayersCount = Object.keys(lobby.players).length;
     if (currentPlayersCount < 3) { if (cb) cb({ error: 'Not enough players (min 3)' }); return; }
-    
+
+    // определяем кол-во шпионов
+    let spyCount;
+    if (lobby.nextSpyCount !== undefined && lobby.nextSpyCount !== null) {
+      // задано вручную через консоль
+      spyCount = Math.max(0, Math.min(currentPlayersCount, lobby.nextSpyCount));
+    } else {
+      // случайный режим: 86% = 1 шпион, 6% = 2, 6% = 0, 2% = все шпионы
+      const r = Math.random() * 100;
+      if (r < 86)       spyCount = 1;
+      else if (r < 92)  spyCount = 2;
+      else if (r < 98)  spyCount = 0;
+      else              spyCount = currentPlayersCount;
+    }
+
     // build playerIndex list sorted by index
     const playersArr = Object.entries(lobby.players).map(([sid,p]) => ({ sid, ...p }));
     playersArr.sort((a,b)=>a.index - b.index);
-    
+
     // determine shared item using lobby.seed
     const items = GAME_ITEMS[lobby.gameKey] || [];
     if (!items || items.length === 0) {
@@ -211,11 +286,10 @@ io.on('connection', (socket) => {
     }
     const shuffledItems = shuffleWithSeed(items, lobby.seed + 1);
     const sharedItem = shuffledItems[0];
-    
-    // ИЗМЕНЕНО: используем playersArr.length вместо lobby.playersCount
+
     const rolePool = [];
-    for (let i=0; i<playersArr.length - spyCount; i++) rolePool.push(sharedItem);
-    for (let i=0; i<spyCount; i++) rolePool.push({ id: 'spy', sys: true });
+    for (let i = 0; i < playersArr.length - spyCount; i++) rolePool.push(sharedItem);
+    for (let i = 0; i < spyCount; i++) rolePool.push({ id: 'spy', sys: true });
     const shuffledRoles = shuffleWithSeed(rolePool, lobby.seed + 2);
     
     // assign roles by playersArr order
@@ -231,7 +305,9 @@ io.on('connection', (socket) => {
       startedAt: Date.now(),
       seed: lobby.seed,
       assigned,
-      theme
+      theme,
+      sharedItem,
+      spyCount
     };
     
     // notify players privately with their role
@@ -289,6 +365,8 @@ io.on('connection', (socket) => {
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (cb) cb({ ok: true, lobby: publicLobbyState(lobby) });
   });
+
+  socket.on('ping_keepalive', () => { /* просто держим сервер живым */ });
 
   socket.on('disconnect', () => {
     const code = socket.data.lobby;
