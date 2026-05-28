@@ -83,9 +83,11 @@ app.get('/health', (req, res) => res.json({ ok: true, version: 2, features: ['ch
 
 // Debug endpoint — просмотр всех лобби через консоль браузера
 app.get('/api/lobbies/debug', (req, res) => {
-  if (req.headers['x-debug-key'] !== 'finkizet-debug') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  const sid = req.query.sid;
+  if (!sid) return res.status(403).json({ error: 'Forbidden' });
+  // проверяем что этот socket.id является админом хотя бы одного лобби
+  const isAdmin = Object.values(LOBBIES).some(l => l.adminSocketId === sid);
+  if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
   const lobbies = Object.values(LOBBIES).map(l => {
     let roundInfo = null;
     if (l.round) {
@@ -363,6 +365,8 @@ io.on('connection', (socket) => {
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (cb) cb({ ok: true, lobby: publicLobbyState(lobby) });
   });
+
+  socket.on('ping_keepalive', () => { /* просто держим сервер живым */ });
 
   socket.on('disconnect', () => {
     const code = socket.data.lobby;
