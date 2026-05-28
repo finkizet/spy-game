@@ -204,9 +204,11 @@ function resolveVote(lobby) {
 
   // reveal if they were spy
   let wasSpyText = '';
+  let wasSpy = false;
   if (lobby.round && lobby.round.assigned) {
     const role = lobby.round.assigned[targetIndex];
-    wasSpyText = (role && role.id === 'spy') ? ' (был шпионом 🕵️)' : ' (был не шпионом)';
+    wasSpy = !!(role && role.id === 'spy');
+    wasSpyText = wasSpy ? ' (был шпионом 🕵️)' : ' (был не шпионом)';
   }
 
   addChatMessage(lobby, {
@@ -214,30 +216,12 @@ function resolveVote(lobby) {
     text: `🚪 ${escapeNick(targetPlayer.nick)} изгнан голосованием${wasSpyText}.`
   });
 
-  io.to(targetSid).emit('kicked', { reason: 'Изгнан голосованием' });
-
-  // remove from socket room but keep in players as kicked for history
-  const targetSocket = io.sockets.sockets.get(targetSid);
-  if (targetSocket) targetSocket.leave(code);
-
-  // remove from players map
-  delete lobby.players[targetSid];
-
-  // admin handoff if needed
-  if (lobby.adminSocketId === targetSid) {
-    const next = Object.keys(lobby.players)[0] || null;
-    lobby.adminSocketId = next;
-  }
-
+  // NOT kicked from the room — they stay but are marked kicked (silenced)
+  // just notify everyone about the updated lobby state
   lobby.voteState = null;
 
-  io.to(code).emit('vote_ended', { kicked: { index: targetIndex, nick: targetPlayer.nick, wasSpy: wasSpyText.includes('шпионом') } });
+  io.to(code).emit('vote_ended', { kicked: { index: targetIndex, nick: targetPlayer.nick, wasSpy } });
   io.to(code).emit('lobby_update', publicLobbyState(lobby));
-
-  // if no players left
-  if (Object.keys(lobby.players).length === 0) {
-    delete LOBBIES[code];
-  }
 }
 
 function escapeNick(s) {
@@ -419,7 +403,7 @@ io.on('connection', (socket) => {
     }
 
     io.to(code).emit('round_started', publicLobbyState(lobby));
-    addChatMessage(lobby, { type: 'system', text: `🕵️ Раунд начался! Шпионов: ${spyCount}. Найдите шпиона!` });
+    addChatMessage(lobby, { type: 'system', text: `🕵️ Раунд начался! Найдите шпиона!` });
     if (cb) cb({ ok: true });
   });
 
@@ -521,6 +505,9 @@ io.on('connection', (socket) => {
     if (lobby.voteState && lobby.voteState.phase === 'voting') {
       if (cb) cb({ error: 'Vote already in progress' }); return;
     }
+    if (lobby.finishVoteState && lobby.finishVoteState.phase === 'voting') {
+      if (cb) cb({ error: 'Finish vote in progress' }); return;
+    }
 
     const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
     const VOTE_DURATION = 60; // seconds
@@ -588,6 +575,9 @@ io.on('connection', (socket) => {
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
     if (lobby.finishVoteState && lobby.finishVoteState.phase === 'voting') {
       if (cb) cb({ error: 'Finish vote already in progress' }); return;
+    }
+    if (lobby.voteState && lobby.voteState.phase === 'voting') {
+      if (cb) cb({ error: 'Kick vote in progress' }); return;
     }
 
     const VOTE_DURATION = 30;
