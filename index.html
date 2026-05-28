@@ -877,12 +877,12 @@ let localNick = localStorage.getItem(NICK_KEY) || '';
 
 // ─── navigation ─────────────────────────────────────────────────
 function showScreen(name) {
-    modeScreen.style.display   = (name === 'mode')   ? '' : 'none';
-    onlineScreen.style.display = (name === 'online') ? '' : 'none';
-    offlineScreen.style.display= (name === 'offline')? '' : 'none';
-    lobbyGameScreen.style.display = (name === 'lobby') ? 'flex' : 'none';
-    // fix body scroll for lobby
-    document.body.style.overflow = (name === 'lobby') ? 'hidden' : '';
+    console.log('[nav] showScreen:', name);
+    modeScreen.style.display      = (name === 'mode')    ? 'flex'  : 'none';
+    onlineScreen.style.display    = (name === 'online')  ? 'block' : 'none';
+    offlineScreen.style.display   = (name === 'offline') ? 'block' : 'none';
+    lobbyGameScreen.style.display = (name === 'lobby')   ? 'flex'  : 'none';
+    document.body.style.overflow  = (name === 'lobby')   ? 'hidden' : '';
 }
 
 btnOnline.addEventListener('click', () => showScreen('online'));
@@ -1618,6 +1618,7 @@ window.debugLobbies = async function() {
 };
 
 setServerStatus('connecting');
+showScreen('mode');
 </script>
 </body>
 </html>
