@@ -399,6 +399,15 @@
             #mobileTabs { display: none !important; }
             #lgChat, #lgCenter, #lgRight { display: flex !important; }
         }
+        .nc-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid transparent; cursor: pointer;
+            padding: 0; margin: 0; transition: transform .15s;
+        }
+        .nc-btn:hover { transform: scale(1.15); }
+        .nc-btn.active { border-color: #fff; transform: scale(1.15); }
+        /* цвет ника в списке игроков */
+        .pl-nick[data-color] { }
     </style>
 </head>
 <body>
@@ -519,6 +528,20 @@
                 </select>
                 <button id="lgStartBtn" type="button" style="display:none;"></button>
                 <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
+                <!-- цвет ника — для всех -->
+                <div id="nickColorRow">
+                    <div style="font-size:.8rem;color:#6b7280;margin-bottom:6px;" id="nickColorLabel">Цвет ника</div>
+                    <div id="nickColorPicker" style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <button class="nc-btn" data-color="#60a5fa" style="background:#60a5fa;" title="Синий"></button>
+                        <button class="nc-btn" data-color="#34d399" style="background:#34d399;" title="Зелёный"></button>
+                        <button class="nc-btn" data-color="#f87171" style="background:#f87171;" title="Красный"></button>
+                        <button class="nc-btn" data-color="#fbbf24" style="background:#fbbf24;" title="Жёлтый"></button>
+                        <button class="nc-btn" data-color="#a78bfa" style="background:#a78bfa;" title="Фиолетовый"></button>
+                        <button class="nc-btn" data-color="#fb923c" style="background:#fb923c;" title="Оранжевый"></button>
+                        <button class="nc-btn" data-color="#f472b6" style="background:#f472b6;" title="Розовый"></button>
+                        <button class="nc-btn" data-color="#e5e7eb" style="background:#e5e7eb;" title="Белый"></button>
+                    </div>
+                </div>
             </div>
 
             <div id="centerError" class="error-box" style="display:none;"></div>
@@ -540,8 +563,10 @@
             <!-- vote kick -->
             <div id="voteKickPanel">
                 <div class="vk-title" id="vkTitle">🗳️ Голосование</div>
-                <div id="voteProgress"></div>
-                <div id="voteTimer"></div>
+                <div id="voteProgressRow" style="display:flex;align-items:center;gap:8px;">
+                    <div id="voteProgress"></div>
+                    <div id="voteTimer" style="font-size:0.9rem;font-weight:700;color:#f87171;"></div>
+                </div>
                 <div id="voteTimerBar"><div id="voteTimerBarFill" style="width:100%;"></div></div>
                 <div id="votePlayersList"></div>
                 <button id="startVoteBtn" type="button" class="btn-warn btn-sm" style="display:none;"></button>
@@ -550,8 +575,10 @@
             <!-- finish match -->
             <div id="finishVotePanel">
                 <div class="fv-title" id="fvTitle">🏁 Завершить матч</div>
-                <div id="finishVoteProgress"></div>
-                <div id="finishVoteTimer"></div>
+                <div id="finishProgressRow" style="display:flex;align-items:center;gap:8px;">
+                    <div id="finishVoteProgress"></div>
+                    <div id="finishVoteTimer" style="font-size:0.9rem;font-weight:700;color:#4ade80;"></div>
+                </div>
                 <div id="finishVoteButtons" style="gap:6px;margin-top:8px;display:none;">
                     <button id="finishYesBtn" class="btn-success btn-sm" type="button" style="flex:1;"></button>
                     <button id="finishNoBtn" class="btn-danger btn-sm" type="button" style="flex:1;"></button>
@@ -992,6 +1019,7 @@ function applyLang(lang) {
     document.getElementById('actionsHeader').textContent     = t.actionsHeader;
     document.getElementById('playersHeader').textContent     = t.playersHeader;
     document.getElementById('settingsHeader').textContent    = t.settingsHeader;
+    if (document.getElementById('nickColorLabel')) document.getElementById('nickColorLabel').textContent = lang === 'ru' ? 'Цвет ника' : 'Nick color';
     document.getElementById('lgGameLabel').textContent       = t.labelGame;
     document.getElementById('sgTitle').textContent           = t.sgTitle;
     spyGuessInput.placeholder                                = t.sgPlaceholder;
@@ -1156,6 +1184,31 @@ socket.on('disconnect', (reason) => {
 });
 socket.on('nick_set', (nick) => { localNick = nick; localStorage.setItem(NICK_KEY, nick); });
 
+// ── Цвет ника ────────────────────────────────────────────────
+const NICK_COLOR_KEY = 'finkizet_nick_color';
+let localNickColor = localStorage.getItem(NICK_COLOR_KEY) || '#60a5fa';
+
+function applyNickColor(color) {
+    localNickColor = color;
+    localStorage.setItem(NICK_COLOR_KEY, color);
+    document.querySelectorAll('.nc-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.color === color);
+    });
+    // перерисовываем список игроков если в лобби
+    if (currentLobbyState) renderLobbyState(currentLobbyState);
+}
+
+document.getElementById('nickColorPicker').addEventListener('click', e => {
+    const btn = e.target.closest('.nc-btn');
+    if (!btn) return;
+    applyNickColor(btn.dataset.color);
+    // шлём обновлённый ник с цветом на сервер (цвет кодируем в нике как metadata)
+    // цвет храним только локально и применяем при рендере
+});
+
+// инициализируем активную кнопку
+applyNickColor(localNickColor);
+
 // ─── create / join lobby ─────────────────────────────────────────
 createLobbyBtn.addEventListener('click', () => {
     errorBoxOnline.style.display = 'none';
@@ -1235,7 +1288,7 @@ function renderLobbyState(state) {
             if (p.kicked) tags.push(`<span class="pl-tag kicked">${i18n[lang].tagKicked || 'изгнан'}</span>`);
             return `<div class="pl-item${p.kicked ? ' pl-kicked' : ''}">
                 <div class="pl-idx">${p.index}</div>
-                <div class="pl-nick">${escapeHtml(p.nick)}</div>
+                <div class="pl-nick" style="${p.socketId === socket.id ? `color:${localNickColor}` : ``}">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
             </div>`;
         }).join('');
@@ -1448,7 +1501,7 @@ startVoteBtn.addEventListener('click', () => {
     });
 });
 
-socket.on('vote_started', ({ voteState, players, duration }) => {
+socket.on('vote_started', ({ voteState, players, totalActive, duration }) => {
     // автопереключение на вкладку Действия
     const actionTab = document.querySelector('.mob-tab[data-tab="action"]');
     if (actionTab) actionTab.click();
@@ -1480,8 +1533,9 @@ socket.on('vote_started', ({ voteState, players, duration }) => {
         });
     });
 
-    voteProgress.textContent = t.voted(0, players.length);
-    startVoteTimer(duration);
+    const vTotal = totalActive || players.length;
+    voteProgress.textContent = t.voted(0, vTotal);
+    startVoteTimer(duration, vTotal);
 });
 
 socket.on('vote_update', ({ votedCount, totalActive }) => {
@@ -1501,9 +1555,9 @@ socket.on('vote_ended', ({ kicked }) => {
 
 socket.on('vote_state', () => {}); // just ack
 
-function startVoteTimer(durationSec) {
+function startVoteTimer(durationSec, total) {
     hideVoteTimer();
-    voteTimerEl.style.display = '';
+    voteTimerEl.style.display = 'inline';
     voteTimerBar.style.display = '';
     voteTimerBarFill.style.width = '100%';
     const end = Date.now() + durationSec * 1000;
@@ -1520,12 +1574,13 @@ function hideVoteTimer() {
     voteTimerEl.style.display = 'none';
     voteTimerBar.style.display = 'none';
     voteTimerEl.textContent = '';
+    voteTimerBarFill.style.width = '100%';
 }
 
 let finishVoteTimerInterval = null;
-function startFinishVoteTimer(durationSec) {
+function startFinishVoteTimer(durationSec, total) {
     if (finishVoteTimerEl) {
-        finishVoteTimerEl.style.display = '';
+        finishVoteTimerEl.style.display = 'inline';
         const end = Date.now() + durationSec * 1000;
         finishVoteTimerEl.textContent = i18n[langSelect.value].timerLeft(durationSec);
         finishVoteTimerInterval = setInterval(() => {
@@ -1553,7 +1608,7 @@ startFinishVoteBtn.addEventListener('click', () => {
     });
 });
 
-socket.on('finish_vote_started', ({ duration, initiatorNick }) => {
+socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
     const lang = langSelect.value, t = i18n[lang];
     finishVotedThisRound = false;
     startFinishVoteBtn.style.display = 'none';
@@ -1561,8 +1616,9 @@ socket.on('finish_vote_started', ({ duration, initiatorNick }) => {
     finishVoteButtons.style.display = 'flex';
     finishYesBtn.disabled = false;
     finishNoBtn.disabled = false;
-    finishVoteProgress.textContent = t.finishVoted(0, currentLobbyState ? currentLobbyState.players.length : '?');
-    startFinishVoteTimer(duration || 30);
+    const fvTotal = totalActive || (currentLobbyState ? currentLobbyState.players.filter(p => !p.kicked).length : '?');
+    finishVoteProgress.textContent = t.finishVoted(0, fvTotal);
+    startFinishVoteTimer(duration || 30, fvTotal);
 });
 
 socket.on('finish_vote_update', ({ votedCount, totalActive }) => {
