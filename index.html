@@ -461,7 +461,7 @@
     <div id="lgTopBar">
         <div id="lgLobbyCode" title="Нажми чтобы скопировать">—</div>
         <div id="lgStatus"></div>
-        <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;" type="button"></button>
+        <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;border-color:#ef4444;color:#ef4444;" type="button">✕ Выйти</button>
     </div>
 
     <!-- mobile tabs -->
@@ -993,7 +993,7 @@ function applyLang(lang) {
     finishYesBtn.textContent                                 = t.finishYes;
     finishNoBtn.textContent                                  = t.finishNo;
     startFinishVoteBtn.textContent                           = t.startFinishVote;
-    lgLeaveBtn.textContent                                   = t.leaveLobbyBtn;
+    lgLeaveBtn.textContent = (lang === 'ru' ? '✕ Выйти' : '✕ Leave');
     grCloseBtn.textContent                                   = t.grClose;
     // game options
     ['gameModeOnline','gameModeOffline','lgGameSelect'].forEach(id => {
@@ -1439,6 +1439,9 @@ startVoteBtn.addEventListener('click', () => {
 });
 
 socket.on('vote_started', ({ voteState, players, duration }) => {
+    // автопереключение на вкладку Действия
+    const actionTab = document.querySelector('.mob-tab[data-tab="action"]');
+    if (actionTab && window.innerWidth <= 860) actionTab.click();
     const lang = langSelect.value, t = i18n[lang];
     myVotedThisRound = false;
     startVoteBtn.style.display = 'none';

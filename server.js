@@ -507,6 +507,7 @@ io.on('connection', (socket) => {
     const lobby = LOBBIES[code];
     if (!lobby || !lobby.round) { if (cb) cb({ error: 'No active round' }); return; }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
+    if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot start votes' }); return; }
     if (lobby.voteState && lobby.voteState.phase === 'voting') {
       if (cb) cb({ error: 'Vote already in progress' }); return;
     }
@@ -552,6 +553,7 @@ io.on('connection', (socket) => {
       if (cb) cb({ error: 'No active vote' }); return;
     }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
+    if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'You are expelled' }); return; }
 
     // already voted?
     if (socket.id in lobby.voteState.votes) {
@@ -561,13 +563,14 @@ io.on('connection', (socket) => {
     // null = skip, number = target index
     lobby.voteState.votes[socket.id] = targetIndex === null ? null : Number(targetIndex);
 
-    const totalActive = Object.keys(lobby.players).length;
+    const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+    const totalActive = activePlayers.length;
     const votedCount = Object.keys(lobby.voteState.votes).length;
 
     io.to(code).emit('vote_update', { votedCount, totalActive });
     if (cb) cb({ ok: true });
 
-    // if everyone voted — resolve early
+    // if everyone active voted — resolve early
     if (votedCount >= totalActive) {
       resolveVote(lobby);
     }
@@ -578,6 +581,7 @@ io.on('connection', (socket) => {
     const lobby = LOBBIES[code];
     if (!lobby || !lobby.round) { if (cb) cb({ error: 'No active round' }); return; }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
+    if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot start votes' }); return; }
     if (lobby.finishVoteState && lobby.finishVoteState.phase === 'voting') {
       if (cb) cb({ error: 'Finish vote already in progress' }); return;
     }
