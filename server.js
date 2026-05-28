@@ -86,18 +86,38 @@ app.get('/api/lobbies/debug', (req, res) => {
   if (req.headers['x-debug-key'] !== 'finkizet-debug') {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  const lobbies = Object.values(LOBBIES).map(l => ({
-    code: l.code,
-    gameKey: l.gameKey,
-    state: l.state,
-    createdAt: l.createdAt,
-    round: l.round ? { startedAt: l.round.startedAt } : null,
-    players: Object.entries(l.players).map(([sid, p]) => ({
-      index: p.index,
-      nick: p.nick,
-      isAdmin: sid === l.adminSocketId
-    }))
-  }));
+  const lobbies = Object.values(LOBBIES).map(l => {
+    let roundInfo = null;
+    if (l.round) {
+      const spies = Object.entries(l.round.assigned)
+        .filter(([,role]) => role && role.id === 'spy')
+        .map(([idx]) => {
+          const p = Object.values(l.players).find(p => p.index === Number(idx));
+          return { index: Number(idx), nick: p ? p.nick : '?' };
+        });
+      roundInfo = {
+        startedAt: l.round.startedAt,
+        sharedItem: l.round.sharedItem,
+        spyCount: l.round.spyCount,
+        spies
+      };
+    }
+    return {
+      code: l.code,
+      gameKey: l.gameKey,
+      state: l.state,
+      createdAt: l.createdAt,
+      nextSpyCount: l.nextSpyCount !== undefined && l.nextSpyCount !== null
+        ? { mode: 'set', count: l.nextSpyCount }
+        : { mode: 'random' },
+      round: roundInfo,
+      players: Object.entries(l.players).map(([sid, p]) => ({
+        index: p.index,
+        nick: p.nick,
+        isAdmin: sid === l.adminSocketId
+      }))
+    };
+  });
   res.json({ count: lobbies.length, lobbies });
 });
 
@@ -230,19 +250,32 @@ io.on('connection', (socket) => {
     if (cb) cb({ ok: true });
   });
 
-  socket.on('start_round', ({ code, spyCount = 1, theme = null }, cb) => {
+  socket.on('start_round', ({ code, theme = null }, cb) => {
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
-    
-    // ИЗМЕНЕНО: берём текущее количество игроков, а не lobby.playersCount
+
     const currentPlayersCount = Object.keys(lobby.players).length;
     if (currentPlayersCount < 3) { if (cb) cb({ error: 'Not enough players (min 3)' }); return; }
-    
+
+    // определяем кол-во шпионов
+    let spyCount;
+    if (lobby.nextSpyCount !== undefined && lobby.nextSpyCount !== null) {
+      // задано вручную через консоль
+      spyCount = Math.max(0, Math.min(currentPlayersCount, lobby.nextSpyCount));
+    } else {
+      // случайный режим: 86% = 1 шпион, 6% = 2, 6% = 0, 2% = все шпионы
+      const r = Math.random() * 100;
+      if (r < 86)       spyCount = 1;
+      else if (r < 92)  spyCount = 2;
+      else if (r < 98)  spyCount = 0;
+      else              spyCount = currentPlayersCount;
+    }
+
     // build playerIndex list sorted by index
     const playersArr = Object.entries(lobby.players).map(([sid,p]) => ({ sid, ...p }));
     playersArr.sort((a,b)=>a.index - b.index);
-    
+
     // determine shared item using lobby.seed
     const items = GAME_ITEMS[lobby.gameKey] || [];
     if (!items || items.length === 0) {
@@ -251,11 +284,10 @@ io.on('connection', (socket) => {
     }
     const shuffledItems = shuffleWithSeed(items, lobby.seed + 1);
     const sharedItem = shuffledItems[0];
-    
-    // ИЗМЕНЕНО: используем playersArr.length вместо lobby.playersCount
+
     const rolePool = [];
-    for (let i=0; i<playersArr.length - spyCount; i++) rolePool.push(sharedItem);
-    for (let i=0; i<spyCount; i++) rolePool.push({ id: 'spy', sys: true });
+    for (let i = 0; i < playersArr.length - spyCount; i++) rolePool.push(sharedItem);
+    for (let i = 0; i < spyCount; i++) rolePool.push({ id: 'spy', sys: true });
     const shuffledRoles = shuffleWithSeed(rolePool, lobby.seed + 2);
     
     // assign roles by playersArr order
@@ -271,7 +303,9 @@ io.on('connection', (socket) => {
       startedAt: Date.now(),
       seed: lobby.seed,
       assigned,
-      theme
+      theme,
+      sharedItem,
+      spyCount
     };
     
     // notify players privately with their role
