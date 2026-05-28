@@ -58,6 +58,12 @@
         .result-title { font-size: 0.85rem; color: #9ca3af; margin-bottom: 6px; }
         .role { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
 
+        #serverStatus {
+            font-size: 0.8rem; padding: 5px 0;
+            color: #6b7280; margin-bottom: 4px;
+        }
+        #serverStatus.online  { color: #4ade80; }
+        #serverStatus.offline { color: #f87171; }
         .error {
             margin-top: 12px; padding: 10px 12px; border-radius: 8px;
             background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.5);
@@ -181,6 +187,7 @@
             <div id="extraTextOnline" class="small"></div>
         </div>
 
+        <div id="serverStatus"></div>
         <div id="errorBoxOnline" class="error" style="display:none;"></div>
     </div>
 
@@ -226,6 +233,9 @@
 
 <script>
 const SERVER_BASE = "https://spy-game-clr8.onrender.com";
+
+// Keepalive — пингуем HTTP раз в 9 минут чтобы Render не усыплял сервер
+setInterval(() => fetch(SERVER_BASE + '/health').catch(() => {}), 9 * 60 * 1000);
 
 // ─── Данные игр ───────────────────────────────────────────────
 const gameModes = {
@@ -570,6 +580,16 @@ async function loadGameItems() {
 loadGameItems();
 
 // ─── Socket / Онлайн логика ───────────────────────────────────
+const serverStatusEl = document.getElementById('serverStatus');
+function setServerStatus(state) {
+    // state: 'online' | 'offline' | 'connecting'
+    serverStatusEl.className = state;
+    if (state === 'online')     serverStatusEl.textContent = '● Сервер онлайн';
+    if (state === 'offline')    serverStatusEl.textContent = '● Сервер недоступен';
+    if (state === 'connecting') serverStatusEl.textContent = '○ Подключение...';
+}
+setServerStatus('connecting');
+
 const socket = io(SERVER_BASE, { transports: ['websocket', 'polling'] });
 let currentLobbyCode = null;
 
@@ -615,8 +635,9 @@ function stopWakeBump() {
     if (_wakeInterval) { clearInterval(_wakeInterval); _wakeInterval = null; }
     errorBoxOnline.style.display = 'none';
 }
-socket.on('connect_error', startWakeBump);
-socket.on('connect', stopWakeBump);
+socket.on('connect_error', () => { setServerStatus('offline'); startWakeBump(); });
+socket.on('connect', () => { setServerStatus('online'); stopWakeBump(); });
+socket.on('disconnect', () => { setServerStatus('offline'); });
 socket.on('nick_set', (nick) => { localNick = nick; localStorage.setItem(NICK_KEY, nick); });
 
 // динамический блок списка игроков
@@ -689,8 +710,10 @@ function renderLobbyState(state) {
         leaveLobbyBtn.style.display= 'none';
         startRoundBtn.style.display= 'none';
         nextRoundBtn.style.display = 'none';
-        createLobbyBtn.style.display = 'block';
-        joinLobbyBtn.style.display   = 'block';
+        createLobbyBtn.style.display  = 'block';
+        joinLobbyBtn.style.display    = 'block';
+        labelJoinLobby.style.display  = 'block';
+        joinLobbyInput.style.display  = 'block';
         labelGameOnline.style.display    = 'block';
         gameModeOnline.style.display     = 'block';
         helpGameModeOnline.style.display = 'block';
@@ -698,9 +721,11 @@ function renderLobbyState(state) {
     }
     const isAdmin = (state.adminSocketId === socket.id);
 
-    createLobbyBtn.style.display = 'none';
-    joinLobbyBtn.style.display   = 'none';
-    lobbyListEl.style.display    = 'block';
+    createLobbyBtn.style.display  = 'none';
+    joinLobbyBtn.style.display    = 'none';
+    labelJoinLobby.style.display  = 'none';
+    joinLobbyInput.style.display  = 'none';
+    lobbyListEl.style.display     = 'block';
     leaveLobbyBtn.style.display  = 'block';
 
     // тема — только у админа
@@ -756,6 +781,30 @@ socket.on('kicked', ({ reason }) => {
     currentLobbyCode = null;
     renderLobbyState(null);
 });
+
+// ─── Dev: просмотр лобби через консоль ───────────────────────
+window.debugLobbies = async function() {
+    try {
+        const resp = await fetch(SERVER_BASE + '/api/lobbies/debug', {
+            headers: { 'x-debug-key': 'finkizet-debug' }
+        });
+        if (!resp.ok) { console.warn('Сервер вернул', resp.status); return; }
+        const data = await resp.json();
+        console.group('🕵 Активные лобби (' + data.count + ')');
+        data.lobbies.forEach(l => {
+            console.group('Лобби ' + l.code + ' [' + l.state + '] gameKey=' + l.gameKey);
+            console.log('Игроки (' + l.players.length + '):', l.players.map(p => p.index + '. ' + p.nick + (p.isAdmin ? ' (admin)' : '')).join(', '));
+            console.log('Создано:', new Date(l.createdAt).toLocaleString());
+            if (l.round) console.log('Раунд начат:', new Date(l.round.startedAt).toLocaleString());
+            console.groupEnd();
+        });
+        console.groupEnd();
+        return data;
+    } catch(e) {
+        console.error('Ошибка:', e);
+    }
+};
+console.info('💡 Введи debugLobbies() чтобы посмотреть активные лобби');
 </script>
 </body>
 </html>
