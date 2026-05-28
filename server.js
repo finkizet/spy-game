@@ -11,6 +11,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Upstash Redis — проверка пароля администратора
+const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+async function checkAdminPassword(password) {
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    console.warn('Upstash не настроен — admin auth отключён');
+    return false;
+  }
+  try {
+    const resp = await fetch(`${REDIS_URL}/get/spy_admin_password`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+    });
+    const data = await resp.json();
+    return data.result === password;
+  } catch (e) {
+    console.error('Redis error:', e);
+    return false;
+  }
+}
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -82,12 +103,11 @@ app.get('/', (req, res) => res.json({ ok: true }));
 app.get('/health', (req, res) => res.json({ ok: true, version: 2, features: ['change_game', 'nick_in_lobby'] }));
 
 // Debug endpoint — просмотр всех лобби через консоль браузера
-app.get('/api/lobbies/debug', (req, res) => {
-  const sid = req.query.sid;
-  if (!sid) return res.status(403).json({ error: 'Forbidden' });
-  // проверяем что этот socket.id является админом хотя бы одного лобби
-  const isAdmin = Object.values(LOBBIES).some(l => l.adminSocketId === sid);
-  if (!isAdmin) return res.status(403).json({ error: 'Forbidden' });
+app.get('/api/lobbies/debug', async (req, res) => {
+  const { sid, password } = req.query;
+  if (!sid || !password) return res.status(403).json({ error: 'Forbidden' });
+  const valid = await checkAdminPassword(password);
+  if (!valid) return res.status(403).json({ error: 'Wrong password' });
   const lobbies = Object.values(LOBBIES).map(l => {
     let roundInfo = null;
     if (l.round) {
@@ -123,6 +143,17 @@ app.get('/api/lobbies/debug', (req, res) => {
   res.json({ count: lobbies.length, lobbies });
 });
 
+// Проверка пароля (вызывается клиентом для получения session-токена)
+app.post('/api/admin/auth', async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'No password' });
+  const valid = await checkAdminPassword(password);
+  if (!valid) return res.status(403).json({ error: 'Wrong password' });
+  // возвращаем одноразовый токен = socket.id который передаст клиент
+  // токен не храним — проверка будет по паролю снова только при новом сеансе
+  res.json({ ok: true });
+});
+
 // Socket.IO events
 io.on('connection', (socket) => {
   socket.data.nick = null;
@@ -141,10 +172,12 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('set_next_spy_count', ({ code, count }, cb) => {
+  socket.on('set_next_spy_count', async ({ code, count, password }, cb) => {
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
+    const valid = await checkAdminPassword(password);
+    if (!valid) { if (cb) cb({ error: 'Wrong password' }); return; }
     if (count === null || count === undefined) {
       lobby.nextSpyCount = null;
       if (cb) cb({ ok: true, mode: 'random' });
