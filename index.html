@@ -1218,11 +1218,10 @@ function renderLobbyState(state) {
     currentGameState = state.state;
 
     // top bar
+    const stateLabel = state.state === 'in-round' ? t.inGame : t.lobbyWord;
     lgLobbyCode.textContent = state.code;
     const lgLobbyMeta = document.getElementById('lgLobbyMeta');
     if (lgLobbyMeta) lgLobbyMeta.textContent = `${stateLabel} · ${state.players.length}/${state.playersCount}`;
-    const stateLabel = state.state === 'in-round' ? t.inGame : t.lobbyWord;
-    // lgStatus теперь занят serverStatus таймером
 
     // players — show all, kicked shown dimmed
     lgPlayers.innerHTML = state.players
