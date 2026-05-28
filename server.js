@@ -608,8 +608,8 @@ io.on('connection', (socket) => {
       const l = LOBBIES[code];
       if (!l || !l.finishVoteState || l.finishVoteState.phase !== 'voting') return;
       // fill missing as 'no'
-      for (const sid of Object.keys(l.players)) {
-        if (!(sid in l.finishVoteState.votes)) l.finishVoteState.votes[sid] = 'no';
+      for (const [sid, p] of Object.entries(l.players)) {
+        if (!p.kicked && !(sid in l.finishVoteState.votes)) l.finishVoteState.votes[sid] = 'no';
       }
       resolveFinishVote(l);
     }, VOTE_DURATION * 1000);
@@ -627,7 +627,7 @@ io.on('connection', (socket) => {
 
     lobby.finishVoteState.votes[socket.id] = answer === 'yes' ? 'yes' : 'no';
 
-    const totalActive = Object.keys(lobby.players).length;
+    const totalActive = Object.values(lobby.players).filter(p => !p.kicked).length;
     const votedCount = Object.keys(lobby.finishVoteState.votes).length;
     io.to(code).emit('finish_vote_update', { votedCount, totalActive });
     if (cb) cb({ ok: true });
