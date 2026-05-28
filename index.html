@@ -178,15 +178,17 @@
         .chat-msg .nick { font-weight: 700; color: #60a5fa; margin-right: 4px; }
         .chat-msg .text { color: #d1d5db; }
         #chatInputRow {
-            padding: 8px 10px; border-top: 1px solid #1e2a3a;
+            padding: 10px 10px; border-top: 1px solid #1e2a3a;
             display: flex; gap: 6px; flex-shrink: 0;
+            background: #0a1120; /* ensure visible on mobile */
         }
         #chatInputRow input {
-            flex: 1; margin: 0; padding: 8px 10px; font-size: 0.88rem;
+            flex: 1; margin: 0; padding: 10px 12px; font-size: 0.9rem;
+            min-height: 42px;
         }
         #chatSendBtn {
-            width: auto; margin: 0; padding: 8px 14px;
-            font-size: 0.88rem; border-radius: 8px;
+            width: auto; margin: 0; padding: 10px 16px;
+            font-size: 0.9rem; border-radius: 8px; min-height: 42px;
         }
 
         /* ── CENTER: GAME ── */
@@ -234,6 +236,13 @@
         .pl-item .pl-tag.admin { background: #1e3a5f; color: #60a5fa; }
         .pl-item .pl-tag.you   { background: #1a2e1a; color: #4ade80; }
         .pl-item .pl-tag.kicked{ background: #2a1a1a; color: #f87171; }
+        .pl-item.pl-kicked {
+            opacity: 0.45;
+            border-color: #3a1a1a;
+            position: relative;
+        }
+        .pl-item.pl-kicked .pl-nick { text-decoration: line-through; color: #6b7280; }
+        .pl-item.pl-kicked .pl-idx  { background: #2a1a1a; color: #f87171; }
 
         /* lobby controls */
         #centerControls { display: flex; flex-direction: column; gap: 8px; }
@@ -378,7 +387,8 @@
             #lgCenter { display: none; }
             #mobileTabs { display: flex; }
 
-            #lgColumns.tab-chat   #lgChat   { display: flex; height: 100%; }
+            #lgColumns.tab-chat   #lgChat   { display: flex; flex-direction: column; height: 100%; }
+            #lgColumns.tab-chat   #chatInputRow { display: flex !important; }
             #lgColumns.tab-game   #lgCenter { display: flex; height: 100%; }
             #lgColumns.tab-action #lgRight  { display: flex; height: 100%; overflow-y: auto; }
         }
@@ -654,9 +664,10 @@ const i18n = {
         voted: (n,t) => `Проголосовало ${n}/${t}`,
         finishVoted: (n,t) => `Проголосовало ${n}/${t}`,
         timerLeft: (s) => `⏱ ${s}с`,
-        grClose: "Закрыть",
+        tagYou: 'ты', tagKicked: 'изгнан',
         copyCode: "Скопировано!",
         sgConfirmDialog: (name) => `Угадать: "${name}"? Это ваша единственная попытка!`,
+        sgConfirmBtn: '✓ Подтвердить',
         sgGuessCorrect: (name) => `угадал: ${name}!`,
         sgGuessWrong: (name) => `Не угадал. Правильно: ${name}`,
         kickedNotice: (nick) => `Ты изгнан голосованием. Наблюдай за игрой.`,
@@ -712,9 +723,10 @@ const i18n = {
         voted: (n,t) => `Voted ${n}/${t}`,
         finishVoted: (n,t) => `Voted ${n}/${t}`,
         timerLeft: (s) => `⏱ ${s}s`,
-        grClose: "Close",
+        tagYou: 'you', tagKicked: 'out',
         copyCode: "Copied!",
         sgConfirmDialog: (name) => `Guess: "${name}"? This is your only attempt!`,
+        sgConfirmBtn: '✓ Confirm',
         sgGuessCorrect: (name) => `guessed it: ${name}!`,
         sgGuessWrong: (name) => `Wrong guess. Correct: ${name}`,
         kickedNotice: (nick) => `You've been voted out. Watch the game.`,
@@ -1201,17 +1213,17 @@ function renderLobbyState(state) {
     const stateLabel = state.state === 'in-round' ? t.inGame : t.lobbyWord;
     lgStatus.textContent = `${stateLabel} · ${state.players.length}/${state.playersCount}`;
 
-    // players
+    // players — show all, kicked shown dimmed
     lgPlayers.innerHTML = state.players
-        .filter(p => !p.kicked)
         .sort((a, b) => a.index - b.index)
         .map(p => {
             const isYou   = p.socketId === socket.id;
             const isAdminP= p.socketId === state.adminSocketId;
             const tags = [];
-            if (isYou)    tags.push(`<span class="pl-tag you">ты</span>`);
+            if (isYou)    tags.push(`<span class="pl-tag you">${i18n[lang].tagYou || 'ты'}</span>`);
             if (isAdminP) tags.push(`<span class="pl-tag admin">admin</span>`);
-            return `<div class="pl-item">
+            if (p.kicked) tags.push(`<span class="pl-tag kicked">${i18n[lang].tagKicked || 'изгнан'}</span>`);
+            return `<div class="pl-item${p.kicked ? ' pl-kicked' : ''}">
                 <div class="pl-idx">${p.index}</div>
                 <div class="pl-nick">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
@@ -1362,10 +1374,11 @@ spyGuessInput.addEventListener('input', () => {
     const query = spyGuessInput.value.trim();
     const gameKey = currentLobbyState ? currentLobbyState.gameKey : 'clash';
     const items = gameModes[gameKey] ? gameModes[gameKey].items : [];
+    // If user is editing — clear previous selection
     selectedGuessItem = null;
     spyGuessConfirmBtn.style.display = 'none';
 
-    if (query.length < 2) { spyGuessList.innerHTML = ''; return; }
+    if (query.length < 2) { spyGuessList.innerHTML = ''; spyGuessConfirmBtn.style.display = 'none'; return; }
     const results = searchItems(query, items, lang);
     if (results.length === 0) {
         spyGuessList.innerHTML = `<div style="font-size:.82rem;color:#6b7280;padding:6px 0;">${t.sgNoResults}</div>`;
@@ -1373,15 +1386,18 @@ spyGuessInput.addEventListener('input', () => {
     }
     spyGuessList.innerHTML = results.map(item => {
         const name = getLocalizedName(item, lang);
-        return `<button class="sg-option" data-id="${escapeHtml(item.id)}" type="button">${escapeHtml(name)}</button>`;
+        return `<button class="sg-option" data-id="${escapeHtml(item.id)}" data-name="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`;
     }).join('');
 
     spyGuessList.querySelectorAll('.sg-option').forEach(btn => {
         btn.addEventListener('click', () => {
-            spyGuessList.querySelectorAll('.sg-option').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedGuessItem = { id: btn.dataset.id, name: btn.textContent };
-            spyGuessConfirmBtn.style.display = '';
+            // replace input text with selected item name
+            spyGuessInput.value = btn.dataset.name;
+            selectedGuessItem = { id: btn.dataset.id, name: btn.dataset.name };
+            // clear list, show confirm
+            spyGuessList.innerHTML = '';
+            spyGuessConfirmBtn.style.display = 'block';
+            spyGuessConfirmBtn.textContent = (i18n[langSelect.value].sgConfirmBtn || '✓ Подтвердить') + `: "${btn.dataset.name}"`;
         });
     });
 });

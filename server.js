@@ -389,11 +389,16 @@ io.on('connection', (socket) => {
     lobby.round = {
       startedAt: Date.now(), seed: lobby.seed, assigned, theme,
       sharedItem, spyCount,
-      spyGuessed: false, // has spy used their guess
+      spyGuessed: false,
       spyGuessUsed: false
     };
     lobby.voteState = null;
     if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
+
+    // reset kicked flags — everyone is active in the new round
+    for (const p of Object.values(lobby.players)) {
+      p.kicked = false;
+    }
 
     // notify players privately
     for (const [sid, p] of Object.entries(lobby.players)) {
