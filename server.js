@@ -81,6 +81,26 @@ setInterval(() => {
 app.get('/', (req, res) => res.json({ ok: true }));
 app.get('/health', (req, res) => res.json({ ok: true, version: 2, features: ['change_game', 'nick_in_lobby'] }));
 
+// Debug endpoint — просмотр всех лобби через консоль браузера
+app.get('/api/lobbies/debug', (req, res) => {
+  if (req.headers['x-debug-key'] !== 'finkizet-debug') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const lobbies = Object.values(LOBBIES).map(l => ({
+    code: l.code,
+    gameKey: l.gameKey,
+    state: l.state,
+    createdAt: l.createdAt,
+    round: l.round ? { startedAt: l.round.startedAt } : null,
+    players: Object.entries(l.players).map(([sid, p]) => ({
+      index: p.index,
+      nick: p.nick,
+      isAdmin: sid === l.adminSocketId
+    }))
+  }));
+  res.json({ count: lobbies.length, lobbies });
+});
+
 // Socket.IO events
 io.on('connection', (socket) => {
   socket.data.nick = null;
