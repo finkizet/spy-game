@@ -234,8 +234,9 @@
 <script>
 const SERVER_BASE = "https://spy-game-clr8.onrender.com";
 
-// Keepalive — пингуем HTTP раз в 9 минут чтобы Render не усыплял сервер
-setInterval(() => fetch(SERVER_BASE + '/health').catch(() => {}), 9 * 60 * 1000);
+// Keepalive — пингуем через сокет раз в 9 минут чтобы Render не усыплял сервер
+// (HTTP fetch блокируется адблоком, сокет — нет)
+setInterval(() => { if (socket.connected) socket.emit('ping_keepalive'); }, 9 * 60 * 1000);
 
 // ─── Данные игр ───────────────────────────────────────────────
 const gameModes = {
@@ -798,9 +799,8 @@ window.nrsc = window.nextroundspycount = function(count) {
 
 window.debugLobbies = async function() {
     try {
-        const resp = await fetch(SERVER_BASE + '/api/lobbies/debug', {
-            headers: { 'x-debug-key': 'finkizet-debug' }
-        });
+        if (!socket.id) { console.warn('Сокет не подключён'); return; }
+        const resp = await fetch(SERVER_BASE + '/api/lobbies/debug?sid=' + socket.id);
         if (!resp.ok) { console.warn('Сервер вернул', resp.status); return; }
         const data = await resp.json();
         console.group('🕵 Активные лобби (' + data.count + ')');
