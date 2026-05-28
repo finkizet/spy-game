@@ -151,7 +151,7 @@
         /* three columns */
         #lgColumns {
             flex: 1; display: grid;
-            grid-template-columns: 280px 1fr 280px;
+            grid-template-columns: 1fr 340px 280px;
             overflow: hidden;
         }
 
@@ -289,6 +289,20 @@
         }
         #voteTimer {
             font-size: 0.82rem; color: #f87171; margin-bottom: 8px;
+            display: none;
+        }
+        #voteTimerBar {
+            height: 4px; border-radius: 4px;
+            background: #1e2a3a; margin-bottom: 10px;
+            display: none; overflow: hidden;
+        }
+        #voteTimerBarFill {
+            height: 100%; border-radius: 4px;
+            background: #fb923c;
+            transition: width 0.5s linear;
+        }
+        #finishVoteTimer {
+            font-size: 0.82rem; color: #4ade80; margin-bottom: 8px;
             display: none;
         }
         #votePlayersList {
@@ -509,6 +523,7 @@
                 <div class="vk-title" id="vkTitle">🗳️ Голосование</div>
                 <div id="voteProgress"></div>
                 <div id="voteTimer"></div>
+                <div id="voteTimerBar"><div id="voteTimerBarFill" style="width:100%;"></div></div>
                 <div id="votePlayersList"></div>
                 <button id="startVoteBtn" type="button" class="btn-warn btn-sm" style="display:none;"></button>
             </div>
@@ -517,6 +532,7 @@
             <div id="finishVotePanel">
                 <div class="fv-title" id="fvTitle">🏁 Завершить матч</div>
                 <div id="finishVoteProgress"></div>
+                <div id="finishVoteTimer"></div>
                 <div id="finishVoteButtons" style="gap:6px;margin-top:8px;display:none;">
                     <button id="finishYesBtn" class="btn-success btn-sm" type="button" style="flex:1;"></button>
                     <button id="finishNoBtn" class="btn-danger btn-sm" type="button" style="flex:1;"></button>
@@ -640,6 +656,10 @@ const i18n = {
         timerLeft: (s) => `⏱ ${s}с`,
         grClose: "Закрыть",
         copyCode: "Скопировано!",
+        sgConfirmDialog: (name) => `Угадать: "${name}"? Это ваша единственная попытка!`,
+        sgGuessCorrect: (name) => `угадал: ${name}!`,
+        sgGuessWrong: (name) => `Не угадал. Правильно: ${name}`,
+        kickedNotice: (nick) => `Ты изгнан голосованием. Наблюдай за игрой.`,
         spyText(modeTitle, label) { return `Ты шпион в ${modeTitle}. Ты НЕ знаешь какой ${label} выпал. Слушай подсказки и не спались.`; },
         nonSpyText(modeTitle, label, itemName) { return `Тебе выпал ${label}: "${itemName}". Описывай так чтобы шпиону было сложно угадать.`; }
     },
@@ -694,6 +714,10 @@ const i18n = {
         timerLeft: (s) => `⏱ ${s}s`,
         grClose: "Close",
         copyCode: "Copied!",
+        sgConfirmDialog: (name) => `Guess: "${name}"? This is your only attempt!`,
+        sgGuessCorrect: (name) => `guessed it: ${name}!`,
+        sgGuessWrong: (name) => `Wrong guess. Correct: ${name}`,
+        kickedNotice: (nick) => `You've been voted out. Watch the game.`,
         spyText(modeTitle, label) { return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone got. Listen and don't get caught.`; },
         nonSpyText(modeTitle, label, itemName) { return `You got a ${label}: "${itemName}". Describe it so the spy can't guess.`; }
     }
@@ -825,12 +849,15 @@ const spyGuessResult     = document.getElementById('spyGuessResult');
 const voteKickPanel  = document.getElementById('voteKickPanel');
 const voteProgress   = document.getElementById('voteProgress');
 const voteTimerEl    = document.getElementById('voteTimer');
+const voteTimerBar   = document.getElementById('voteTimerBar');
+const voteTimerBarFill = document.getElementById('voteTimerBarFill');
 const votePlayersList= document.getElementById('votePlayersList');
 const startVoteBtn   = document.getElementById('startVoteBtn');
 
 // finish vote
 const finishVotePanel    = document.getElementById('finishVotePanel');
 const finishVoteProgress = document.getElementById('finishVoteProgress');
+const finishVoteTimerEl  = document.getElementById('finishVoteTimer');
 const finishVoteButtons  = document.getElementById('finishVoteButtons');
 const finishYesBtn       = document.getElementById('finishYesBtn');
 const finishNoBtn        = document.getElementById('finishNoBtn');
@@ -1300,7 +1327,7 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
     amISpy = isSpy;
     spyGuessUsed = false; selectedGuessItem = null;
 
-    roleCard.style.display = '';
+    roleCard.style.display = 'block';
     rcLabel.textContent    = t.resultTitle;
 
     if (isSpy) {
@@ -1308,7 +1335,7 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
         rcRole.textContent = t.spyRole;
         rcDesc.textContent = t.spyText(mode.title[lang], mode.label[lang]);
         // show spy guess panel
-        spyGuessPanel.style.display = '';
+        spyGuessPanel.style.display = 'block';
         spyGuessInput.value = '';
         spyGuessList.innerHTML = '';
         spyGuessConfirmBtn.style.display = 'none';
@@ -1323,7 +1350,7 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
     }
 
     // show vote/finish buttons
-    startVoteBtn.style.display     = '';
+    startVoteBtn.style.display      = '';
     startFinishVoteBtn.style.display = '';
     myVotedThisRound = false; finishVotedThisRound = false;
 });
@@ -1361,7 +1388,8 @@ spyGuessInput.addEventListener('input', () => {
 
 spyGuessConfirmBtn.addEventListener('click', () => {
     if (!selectedGuessItem || spyGuessUsed || !currentLobbyCode) return;
-    if (!confirm(`Угадать: "${selectedGuessItem.name}"? Это ваша единственная попытка!`)) return;
+    const t = i18n[langSelect.value];
+    if (!confirm(t.sgConfirmDialog(selectedGuessItem.name))) return;
     spyGuessUsed = true;
     spyGuessPanel.querySelectorAll('input, button').forEach(el => el.disabled = true);
     socket.emit('spy_guess', { code: currentLobbyCode, guessId: selectedGuessItem.id }, (resp) => {
@@ -1370,17 +1398,17 @@ spyGuessConfirmBtn.addEventListener('click', () => {
 });
 
 socket.on('spy_guess_result', ({ correct, spyNick, guessId, correctId, winner }) => {
-    const lang = langSelect.value;
+    const lang = langSelect.value, t = i18n[lang];
     const gameKey = currentLobbyState ? currentLobbyState.gameKey : 'clash';
     const items = gameModes[gameKey] ? gameModes[gameKey].items : [];
     const correctItem = items.find(i => i.id === correctId);
     const correctName = correctItem ? getLocalizedName(correctItem, lang) : correctId;
 
-    spyGuessResult.style.display = '';
+    spyGuessResult.style.display = 'block';
     if (correct) {
-        spyGuessResult.innerHTML = `<span style="color:#4ade80;">✓ ${escapeHtml(spyNick)} угадал: ${escapeHtml(correctName)}!</span>`;
+        spyGuessResult.innerHTML = `<span style="color:#4ade80;">✓ ${escapeHtml(spyNick)} ${t.sgGuessCorrect(correctName)}</span>`;
     } else {
-        spyGuessResult.innerHTML = `<span style="color:#f87171;">✗ Не угадал. Правильно: ${escapeHtml(correctName)}</span>`;
+        spyGuessResult.innerHTML = `<span style="color:#f87171;">✗ ${t.sgGuessWrong(correctName)}</span>`;
     }
 });
 
@@ -1398,6 +1426,7 @@ socket.on('vote_started', ({ voteState, players, duration }) => {
     const lang = langSelect.value, t = i18n[lang];
     myVotedThisRound = false;
     startVoteBtn.style.display = 'none';
+    startFinishVoteBtn.style.display = 'none'; // Fix 5: hide finish vote while kick vote runs
     voteEndsAt = voteState.endsAt;
 
     // build player list (exclude self from votable)
@@ -1435,9 +1464,10 @@ socket.on('vote_ended', ({ kicked }) => {
     hideVoteTimer();
     votePlayersList.innerHTML = '';
     voteProgress.textContent = '';
-    myVotedThisRound = true; // vote is over
+    // Re-show both buttons after vote concludes
     startVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
-    myVotedThisRound = false; // allow next vote
+    startFinishVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
+    myVotedThisRound = false;
 });
 
 socket.on('vote_state', () => {}); // just ack
@@ -1445,18 +1475,43 @@ socket.on('vote_state', () => {}); // just ack
 function startVoteTimer(durationSec) {
     hideVoteTimer();
     voteTimerEl.style.display = '';
+    voteTimerBar.style.display = '';
+    voteTimerBarFill.style.width = '100%';
     const end = Date.now() + durationSec * 1000;
     voteTimerEl.textContent = i18n[langSelect.value].timerLeft(durationSec);
     voteTimerInterval = setInterval(() => {
         const left = Math.max(0, end - Date.now());
         voteTimerEl.textContent = i18n[langSelect.value].timerLeft(Math.ceil(left / 1000));
+        voteTimerBarFill.style.width = ((left / (durationSec * 1000)) * 100).toFixed(1) + '%';
         if (left <= 0) hideVoteTimer();
     }, 500);
 }
 function hideVoteTimer() {
     if (voteTimerInterval) { clearInterval(voteTimerInterval); voteTimerInterval = null; }
     voteTimerEl.style.display = 'none';
+    voteTimerBar.style.display = 'none';
     voteTimerEl.textContent = '';
+}
+
+let finishVoteTimerInterval = null;
+function startFinishVoteTimer(durationSec) {
+    if (finishVoteTimerEl) {
+        finishVoteTimerEl.style.display = '';
+        const end = Date.now() + durationSec * 1000;
+        finishVoteTimerEl.textContent = i18n[langSelect.value].timerLeft(durationSec);
+        finishVoteTimerInterval = setInterval(() => {
+            const left = Math.max(0, end - Date.now());
+            finishVoteTimerEl.textContent = i18n[langSelect.value].timerLeft(Math.ceil(left / 1000));
+            if (left <= 0) {
+                clearInterval(finishVoteTimerInterval); finishVoteTimerInterval = null;
+                finishVoteTimerEl.style.display = 'none';
+            }
+        }, 500);
+    }
+}
+function hideFinishVoteTimer() {
+    if (finishVoteTimerInterval) { clearInterval(finishVoteTimerInterval); finishVoteTimerInterval = null; }
+    if (finishVoteTimerEl) { finishVoteTimerEl.style.display = 'none'; finishVoteTimerEl.textContent = ''; }
 }
 
 // ─── finish vote ─────────────────────────────────────────────────
@@ -1473,10 +1528,12 @@ socket.on('finish_vote_started', ({ duration, initiatorNick }) => {
     const lang = langSelect.value, t = i18n[lang];
     finishVotedThisRound = false;
     startFinishVoteBtn.style.display = 'none';
+    startVoteBtn.style.display = 'none';
     finishVoteButtons.style.display = 'flex';
     finishYesBtn.disabled = false;
     finishNoBtn.disabled = false;
     finishVoteProgress.textContent = t.finishVoted(0, currentLobbyState ? currentLobbyState.players.length : '?');
+    startFinishVoteTimer(duration || 30);
 });
 
 socket.on('finish_vote_update', ({ votedCount, totalActive }) => {
@@ -1499,7 +1556,9 @@ function castFinishVote(answer) {
 socket.on('finish_vote_rejected', () => {
     finishVoteButtons.style.display = 'none';
     finishVoteProgress.textContent = '';
-    startFinishVoteBtn.style.display = '';
+    hideFinishVoteTimer();
+    startFinishVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
+    startVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
     finishVotedThisRound = false;
 });
 
