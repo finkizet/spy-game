@@ -141,6 +141,21 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('set_next_spy_count', ({ code, count }, cb) => {
+    const lobby = LOBBIES[code];
+    if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
+    if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
+    if (count === null || count === undefined) {
+      lobby.nextSpyCount = null;
+      if (cb) cb({ ok: true, mode: 'random' });
+    } else {
+      const n = Number(count);
+      if (!Number.isFinite(n) || n < 0) { if (cb) cb({ error: 'Bad count' }); return; }
+      lobby.nextSpyCount = n;
+      if (cb) cb({ ok: true, mode: 'set', count: n });
+    }
+  });
+
   socket.on('change_game', ({ code, gameKey }, cb) => {
     console.log('[change_game]', socket.id, code, gameKey);
     const lobby = LOBBIES[code];
