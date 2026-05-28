@@ -106,12 +106,12 @@
         #btnOffline { background: #1e293b; border: 1px solid #374151; color: #e5e7eb; }
 
         /* кнопка «назад» */
-        #backBtn {
+        #backBtn, #backFromOffline {
             width: auto; background: transparent; border: 1px solid #374151;
             color: #9ca3af; font-size: 0.85rem; font-weight: 500;
             padding: 7px 16px; border-radius: 999px; margin-bottom: 20px;
         }
-        #backBtn:hover { background: #1e293b; }
+        #backBtn:hover, #backFromOffline:hover { background: #1e293b; }
     </style>
 </head>
 <body>
@@ -251,7 +251,7 @@ const i18n = {
         msOnlineLabel: "Играть онлайн",
         msOnlineSub: "Общее лобби, роли раздаёт сервер",
         msOfflineLabel: "Играть офлайн",
-        msOfflineSub: "Один телефон — передавай по кругу",
+        msOfflineSub: "Без интернета — нужен только чат для общения",
         backLabel: "Назад",
         // shared
         labelGame: "Игра",
@@ -305,7 +305,7 @@ const i18n = {
         msOnlineLabel: "Play online",
         msOnlineSub: "Shared lobby, server assigns roles",
         msOfflineLabel: "Play offline",
-        msOfflineSub: "One phone — pass it around",
+        msOfflineSub: "No internet needed — just a chat to communicate",
         backLabel: "Back",
         labelGame: "Game",
         helpGameMode: "Game selection changes the list of cards/heroes.",
@@ -598,7 +598,25 @@ socket.on('connect', () => {
     const nick = nickInput.value.trim() || localNick || 'Player';
     socket.emit('set_nick', nick);
 });
-socket.on('connect_error', () => showErrorOnline(i18n[langSelect.value].serverWaking));
+let _wakeInterval = null;
+let _wakeDots = 0;
+function startWakeBump() {
+    if (_wakeInterval) return;
+    _wakeDots = 0;
+    const base = i18n[langSelect.value].serverWaking;
+    errorBoxOnline.textContent = base;
+    errorBoxOnline.style.display = 'block';
+    _wakeInterval = setInterval(() => {
+        _wakeDots = (_wakeDots + 1) % 4;
+        errorBoxOnline.textContent = base + ' ' + '.'.repeat(_wakeDots || 1);
+    }, 700);
+}
+function stopWakeBump() {
+    if (_wakeInterval) { clearInterval(_wakeInterval); _wakeInterval = null; }
+    errorBoxOnline.style.display = 'none';
+}
+socket.on('connect_error', startWakeBump);
+socket.on('connect', stopWakeBump);
 socket.on('nick_set', (nick) => { localNick = nick; localStorage.setItem(NICK_KEY, nick); });
 
 // динамический блок списка игроков
