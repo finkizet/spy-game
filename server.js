@@ -529,6 +529,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('vote_started', {
       voteState: lobby.voteState,
       players: activePlayers.map(p => ({ index: p.index, nick: p.nick })),
+      totalActive: activePlayers.length,
       duration: VOTE_DURATION
     });
     addChatMessage(lobby, { type: 'system', text: `⚡ ${escapeNick(lobby.players[socket.id].nick)} начал голосование об изгнании!` });
@@ -597,10 +598,12 @@ io.on('connection', (socket) => {
       votes: {} // socketId -> 'yes' | 'no'
     };
 
+    const fvActivePlayers = Object.values(lobby.players).filter(p => !p.kicked);
     io.to(code).emit('finish_vote_started', {
       finishVoteState: lobby.finishVoteState,
       duration: VOTE_DURATION,
-      initiatorNick: lobby.players[socket.id].nick
+      initiatorNick: lobby.players[socket.id].nick,
+      totalActive: fvActivePlayers.length
     });
     addChatMessage(lobby, { type: 'system', text: `🏁 ${escapeNick(lobby.players[socket.id].nick)} предлагает завершить матч — все шпионы пойманы?` });
 
