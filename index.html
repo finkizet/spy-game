@@ -675,7 +675,7 @@ joinLobbyBtn.addEventListener('click', () => {
 
 // начать раунд
 startRoundBtn.addEventListener('click', () => {
-    socket.emit('start_round', { code: currentLobbyCode, spyCount: 1 }, (resp) => {
+    socket.emit('start_round', { code: currentLobbyCode }, (resp) => {
         if (resp && resp.error) showErrorOnline(resp.error);
         else errorBoxOnline.style.display = 'none';
     });
@@ -783,6 +783,19 @@ socket.on('kicked', ({ reason }) => {
 });
 
 // ─── Dev: просмотр лобби через консоль ───────────────────────
+// nrsc [n] — установить кол-во шпионов на следующий раунд
+// nrsc reset — вернуть случайный режим
+window.nrsc = window.nextroundspycount = function(count) {
+    if (!currentLobbyCode) { console.warn('Ты не в лобби'); return; }
+    const isReset = count === 'reset' || count === null || count === undefined;
+    socket.emit('set_next_spy_count', { code: currentLobbyCode, count: isReset ? null : Number(count) }, (resp) => {
+        if (!resp) { console.warn('Нет ответа от сервера'); return; }
+        if (resp.error) { console.warn('Ошибка:', resp.error); return; }
+        if (resp.mode === 'random') console.log('✅ Следующий раунд: случайное кол-во шпионов (default)');
+        else console.log('✅ Следующий раунд: шпионов =', resp.count);
+    });
+};
+
 window.debugLobbies = async function() {
     try {
         const resp = await fetch(SERVER_BASE + '/api/lobbies/debug', {
@@ -795,7 +808,19 @@ window.debugLobbies = async function() {
             console.group('Лобби ' + l.code + ' [' + l.state + '] gameKey=' + l.gameKey);
             console.log('Игроки (' + l.players.length + '):', l.players.map(p => p.index + '. ' + p.nick + (p.isAdmin ? ' (admin)' : '')).join(', '));
             console.log('Создано:', new Date(l.createdAt).toLocaleString());
-            if (l.round) console.log('Раунд начат:', new Date(l.round.startedAt).toLocaleString());
+            const nsc = l.nextSpyCount;
+            console.log('Следующий раунд шпионов:', nsc && nsc.mode === 'set' ? 'задано: ' + nsc.count : 'random (default)');
+            if (l.round) {
+                console.group('Текущий раунд (начат ' + new Date(l.round.startedAt).toLocaleString() + ')');
+                const item = l.round.sharedItem;
+                console.log('Загадана карта/герой:', item ? (item.ru || item.id) + ' (' + item.id + ')' : '—');
+                console.log('Шпионов:', l.round.spyCount);
+                if (l.round.spies && l.round.spies.length > 0)
+                    console.log('Шпионы:', l.round.spies.map(s => s.index + '. ' + s.nick).join(', '));
+                else
+                    console.log('Шпионов нет (все знают карту)');
+                console.groupEnd();
+            }
             console.groupEnd();
         });
         console.groupEnd();
@@ -804,7 +829,6 @@ window.debugLobbies = async function() {
         console.error('Ошибка:', e);
     }
 };
-console.info('💡 Введи debugLobbies() чтобы посмотреть активные лобби');
 </script>
 </body>
 </html>
