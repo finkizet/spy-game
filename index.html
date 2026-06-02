@@ -1414,13 +1414,18 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
         roleCard.classList.add('spy-card');
         rcRole.textContent = t.spyRole;
         rcDesc.textContent = t.spyText(mode.title[lang], mode.label[lang]);
-        // show spy guess panel
+        // show spy guess panel — полный сброс каждый раунд
         spyGuessPanel.style.display = 'block';
         spyGuessInput.value = '';
+        spyGuessInput.disabled = false;
         spyGuessList.innerHTML = '';
         spyGuessConfirmBtn.style.display = 'none';
+        spyGuessConfirmBtn.disabled = false;
         spyGuessResult.style.display = 'none';
+        spyGuessResult.innerHTML = '';
         selectedGuessItem = null;
+        // снимаем disabled со всех элементов панели (после предыдущего раунда)
+        spyGuessPanel.querySelectorAll('input, button').forEach(el => el.disabled = false);
     } else {
         roleCard.classList.remove('spy-card');
         const name = getLocalizedName(role, lang);
