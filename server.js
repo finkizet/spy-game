@@ -137,7 +137,7 @@ function publicLobbyState(lobby) {
     state: lobby.state,
     adminSocketId: lobby.adminSocketId,
     players: Object.entries(lobby.players).map(([sid, p]) => ({
-      socketId: sid, nick: p.nick, index: p.index, state: p.state, kicked: !!p.kicked
+      socketId: sid, nick: p.nick, index: p.index, state: p.state, kicked: !!p.kicked, color: p.color || '#60a5fa'
     })),
     roundInfo: lobby.round ? { startedAt: lobby.round.startedAt, spyGuessed: lobby.round.spyGuessed } : null,
     createdAt: lobby.createdAt,
@@ -233,6 +233,18 @@ function escapeNick(s) {
 io.on('connection', (socket) => {
   socket.data.nick = null;
   socket.data.lobby = null;
+  socket.data.color = '#60a5fa';
+
+  socket.on('set_color', (color) => {
+    const allowed = ['#60a5fa','#34d399','#f87171','#fbbf24','#a78bfa','#fb923c','#f472b6','#e5e7eb'];
+    if (!allowed.includes(color)) return;
+    socket.data.color = color;
+    const code = socket.data.lobby;
+    if (code && LOBBIES[code] && LOBBIES[code].players[socket.id]) {
+      LOBBIES[code].players[socket.id].color = color;
+      io.to(code).emit('lobby_update', publicLobbyState(LOBBIES[code]));
+    }
+  });
 
   socket.on('set_nick', (nick) => {
     socket.data.nick = typeof nick === 'string' ? nick.slice(0, 32) : `Player${socket.id.slice(0,4)}`;
@@ -285,7 +297,7 @@ io.on('connection', (socket) => {
       createdAt: Date.now()
     };
     const index = 1;
-    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false };
+    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, color: socket.data.color || '#60a5fa' };
     socket.join(code);
     socket.data.lobby = code;
     LOBBIES[code] = lobby;
@@ -313,7 +325,7 @@ io.on('connection', (socket) => {
       if (taken) { if (cb) cb({ error: 'Index already taken' }); return; }
     }
 
-    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false };
+    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, color: socket.data.color || '#60a5fa' };
     socket.join(code);
     socket.data.lobby = code;
     if (cb) cb({ ok: true, code, yourIndex: index });
@@ -451,6 +463,7 @@ io.on('connection', (socket) => {
     const msg = {
       type: 'player',
       nick: escapeNick(nick),
+      color: lobby.players[socket.id].color || '#60a5fa',
       text: String(text).slice(0, 300),
       ts: Date.now()
     };

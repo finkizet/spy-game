@@ -445,6 +445,21 @@
     <label for="nickInput" id="labelNick"></label>
     <input id="nickInput" type="text" maxlength="32" />
 
+    <!-- цвет ника — выбирается до захода в лобби -->
+    <div id="nickColorRowOnline" style="margin-bottom:14px;">
+        <div style="font-size:.9rem;color:#9ca3af;margin-bottom:6px;" id="nickColorLabelOnline">Цвет ника</div>
+        <div id="nickColorPickerOnline" style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button class="nc-btn" data-color="#60a5fa" style="background:#60a5fa;" title="Синий"></button>
+            <button class="nc-btn" data-color="#34d399" style="background:#34d399;" title="Зелёный"></button>
+            <button class="nc-btn" data-color="#f87171" style="background:#f87171;" title="Красный"></button>
+            <button class="nc-btn" data-color="#fbbf24" style="background:#fbbf24;" title="Жёлтый"></button>
+            <button class="nc-btn" data-color="#a78bfa" style="background:#a78bfa;" title="Фиолетовый"></button>
+            <button class="nc-btn" data-color="#fb923c" style="background:#fb923c;" title="Оранжевый"></button>
+            <button class="nc-btn" data-color="#f472b6" style="background:#f472b6;" title="Розовый"></button>
+            <button class="nc-btn" data-color="#e5e7eb" style="background:#e5e7eb;" title="Белый"></button>
+        </div>
+    </div>
+
     <label for="gameModeOnline" id="labelGameOnline"></label>
     <select id="gameModeOnline">
         <option value="clash"></option>
@@ -528,20 +543,6 @@
                 </select>
                 <button id="lgStartBtn" type="button" style="display:none;"></button>
                 <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
-                <!-- цвет ника — для всех -->
-                <div id="nickColorRow">
-                    <div style="font-size:.8rem;color:#6b7280;margin-bottom:6px;" id="nickColorLabel">Цвет ника</div>
-                    <div id="nickColorPicker" style="display:flex;flex-wrap:wrap;gap:6px;">
-                        <button class="nc-btn" data-color="#60a5fa" style="background:#60a5fa;" title="Синий"></button>
-                        <button class="nc-btn" data-color="#34d399" style="background:#34d399;" title="Зелёный"></button>
-                        <button class="nc-btn" data-color="#f87171" style="background:#f87171;" title="Красный"></button>
-                        <button class="nc-btn" data-color="#fbbf24" style="background:#fbbf24;" title="Жёлтый"></button>
-                        <button class="nc-btn" data-color="#a78bfa" style="background:#a78bfa;" title="Фиолетовый"></button>
-                        <button class="nc-btn" data-color="#fb923c" style="background:#fb923c;" title="Оранжевый"></button>
-                        <button class="nc-btn" data-color="#f472b6" style="background:#f472b6;" title="Розовый"></button>
-                        <button class="nc-btn" data-color="#e5e7eb" style="background:#e5e7eb;" title="Белый"></button>
-                    </div>
-                </div>
             </div>
 
             <div id="centerError" class="error-box" style="display:none;"></div>
@@ -1019,7 +1020,9 @@ function applyLang(lang) {
     document.getElementById('actionsHeader').textContent     = t.actionsHeader;
     document.getElementById('playersHeader').textContent     = t.playersHeader;
     document.getElementById('settingsHeader').textContent    = t.settingsHeader;
-    if (document.getElementById('nickColorLabel')) document.getElementById('nickColorLabel').textContent = lang === 'ru' ? 'Цвет ника' : 'Nick color';
+    if (document.getElementById('nickColorLabelOnline')) {
+        document.getElementById('nickColorLabelOnline').textContent = lang === 'ru' ? 'Цвет ника' : 'Nick color';
+    }
     document.getElementById('lgGameLabel').textContent       = t.labelGame;
     document.getElementById('sgTitle').textContent           = t.sgTitle;
     spyGuessInput.placeholder                                = t.sgPlaceholder;
@@ -1171,6 +1174,7 @@ socket.on('connect', () => {
     console.log('[socket] connected, id:', socket.id);
     const nick = nickInput.value.trim() || localNick || 'Player';
     socket.emit('set_nick', nick);
+    socket.emit('set_color', localNickColor);
     setServerStatus('online');
     stopWakeBump();
 });
@@ -1194,16 +1198,16 @@ function applyNickColor(color) {
     document.querySelectorAll('.nc-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.color === color);
     });
+    // отправляем на сервер
+    socket.emit('set_color', color);
     // перерисовываем список игроков если в лобби
     if (currentLobbyState) renderLobbyState(currentLobbyState);
 }
 
-document.getElementById('nickColorPicker').addEventListener('click', e => {
+document.getElementById('nickColorPickerOnline').addEventListener('click', e => {
     const btn = e.target.closest('.nc-btn');
     if (!btn) return;
     applyNickColor(btn.dataset.color);
-    // шлём обновлённый ник с цветом на сервер (цвет кодируем в нике как metadata)
-    // цвет храним только локально и применяем при рендере
 });
 
 // инициализируем активную кнопку
@@ -1288,7 +1292,7 @@ function renderLobbyState(state) {
             if (p.kicked) tags.push(`<span class="pl-tag kicked">${i18n[lang].tagKicked || 'изгнан'}</span>`);
             return `<div class="pl-item${p.kicked ? ' pl-kicked' : ''}">
                 <div class="pl-idx">${p.index}</div>
-                <div class="pl-nick" style="${p.socketId === socket.id ? `color:${localNickColor}` : ``}">${escapeHtml(p.nick)}</div>
+                <div class="pl-nick" style="color:${escapeHtml(p.color || '#60a5fa')}">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
             </div>`;
         }).join('');
@@ -1378,7 +1382,8 @@ function appendChatMsg(msg) {
     if (msg.type === 'system') {
         div.textContent = msg.text;
     } else {
-        div.innerHTML = `<span class="nick">${escapeHtml(msg.nick)}:</span><span class="text"> ${escapeHtml(msg.text)}</span>`;
+        const nickColor = msg.color || '#60a5fa';
+        div.innerHTML = `<span class="nick" style="color:${escapeHtml(nickColor)}">${escapeHtml(msg.nick)}:</span><span class="text"> ${escapeHtml(msg.text)}</span>`;
     }
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
