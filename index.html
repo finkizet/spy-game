@@ -1506,8 +1506,6 @@ spyGuessInput.addEventListener('input', () => {
 
 spyGuessConfirmBtn.addEventListener('click', () => {
     if (!selectedGuessItem || spyGuessUsed || !currentLobbyCode) return;
-    const t = i18n[langSelect.value];
-    if (!confirm(t.sgConfirmDialog(selectedGuessItem.name))) return;
     spyGuessUsed = true;
     spyGuessPanel.querySelectorAll('input, button').forEach(el => el.disabled = true);
     socket.emit('spy_guess', { code: currentLobbyCode, guessId: selectedGuessItem.id }, (resp) => {
