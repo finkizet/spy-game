@@ -18,7 +18,7 @@
 
         /* ── LANGUAGE BAR ── */
         #langTopBar {
-            position: fixed; top: 12px; right: 16px;
+            position: fixed; top: 8px; right: 16px;
             display: flex; align-items: center; gap: 8px; z-index: 100;
         }
         #langIcon { width: 20px; height: 20px; opacity: 0.9; }
@@ -67,6 +67,7 @@
         .card {
             padding: 14px 16px; border-radius: 12px;
             background: #020617; border: 1px solid #1e2a3a;
+            min-width: 0;
         }
         .error-box {
             padding: 10px 12px; border-radius: 8px;
@@ -77,8 +78,8 @@
         /* ── MODE SCREEN ── */
         #modeScreen {
             display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            min-height: 100vh; gap: 16px; padding: 24px 16px;
+            align-items: center; justify-content: flex-start;
+            min-height: 100vh; gap: 16px; padding: 24px 16px; padding-top: 80px;
         }
         #modeScreen h1 { font-size: 1.8rem; margin-bottom: 4px; text-align: center; }
         #modeScreen .subtitle { font-size: 0.9rem; color: #9ca3af; text-align: center; margin-bottom: 20px; }
@@ -120,7 +121,7 @@
 
         /* top bar */
         #lgTopBar {
-            padding: 10px 16px;
+            padding: 26px 16px;
             background: #0a1120;
             border-bottom: 1px solid #1e2a3a;
             display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -150,9 +151,21 @@
 
         /* three columns */
         #lgColumns {
-            flex: 1; display: grid;
-            grid-template-columns: 1fr 340px 280px;
+            flex: 1;
+            display: grid;
+
+            /* БЫЛО */
+            /* grid-template-columns: minmax(0, 1fr) 340px 280px; */
+
+            /* СТАЛО */
+            grid-template-columns:
+                minmax(220px, 1fr)
+                minmax(260px, 340px)
+                minmax(220px, 280px);
+
             overflow: hidden;
+            width: 100%;
+            min-width: 0;
         }
 
         /* ── LEFT: CHAT ── */
@@ -160,6 +173,7 @@
             display: flex; flex-direction: column;
             border-right: 1px solid #1e2a3a;
             overflow: hidden;
+            min-width: 0;
         }
         .col-header {
             padding: 10px 14px; font-size: 0.82rem; font-weight: 600;
@@ -193,9 +207,10 @@
 
         /* ── CENTER: GAME ── */
         #lgCenter {
-            display: flex; flex-direction: column;
-            overflow-y: auto; padding: 16px;
-            gap: 14px;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
         }
         #lgCenter::-webkit-scrollbar { width: 4px; }
         #lgCenter::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 4px; }
@@ -248,11 +263,22 @@
         #centerControls { display: flex; flex-direction: column; gap: 8px; }
         #centerControls select { margin-bottom: 0; }
 
+        #lgCenterContent {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+
         /* ── RIGHT: ACTIONS ── */
         #lgRight {
             display: flex; flex-direction: column;
             border-left: 1px solid #1e2a3a;
             overflow-y: auto;
+            min-width: 0;
         }
         #lgRight::-webkit-scrollbar { width: 4px; }
         #lgRight::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 4px; }
@@ -510,42 +536,44 @@
 
         <!-- CENTER: Game -->
         <div id="lgCenter">
-
-            <!-- lobby info + leave -->
-            <div class="card" id="lobbyInfoCard" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
-                <div>
-                    <div id="lgLobbyCode" style="font-weight:700;font-size:1rem;cursor:pointer;letter-spacing:.08em;" title="Нажми чтобы скопировать">—</div>
-                    <div id="lgLobbyMeta" style="font-size:0.8rem;color:#6b7280;margin-top:2px;"></div>
+            <div class="col-header" id="gameHeader">🎮 Игра</div>
+                <div id="lgCenterContent">
+                <!-- lobby info + leave -->
+                <div class="card" id="lobbyInfoCard" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+                    <div>
+                        <div id="lgLobbyCode" style="font-weight:700;font-size:1rem;cursor:pointer;letter-spacing:.08em;" title="Нажми чтобы скопировать">—</div>
+                        <div id="lgLobbyMeta" style="font-size:0.8rem;color:#6b7280;margin-top:2px;"></div>
+                    </div>
+                    <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;border:2px solid #ef4444;color:#ef4444;padding:6px 16px;font-size:0.92rem;font-weight:700;border-radius:12px;margin-top:0;" type="button">✕ Выйти</button>
                 </div>
-                <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;border-color:#ef4444;color:#ef4444;margin-top:0;" type="button">✕ Выйти</button>
-            </div>
 
-            <!-- role card -->
-            <div id="roleCard">
-                <div class="rc-label" id="rcLabel"></div>
-                <div class="rc-role" id="rcRole"></div>
-                <div class="rc-desc" id="rcDesc"></div>
-            </div>
+                <!-- role card -->
+                <div id="roleCard">
+                    <div class="rc-label" id="rcLabel"></div>
+                    <div class="rc-role" id="rcRole"></div>
+                    <div class="rc-desc" id="rcDesc"></div>
+                </div>
 
-            <!-- players list -->
-            <div class="card">
-                <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="playersHeader"></div>
-                <div id="lgPlayers"></div>
-            </div>
+                <!-- players list -->
+                <div class="card">
+                    <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="playersHeader"></div>
+                    <div id="lgPlayers"></div>
+                </div>
 
-            <!-- admin/lobby controls -->
-            <div id="centerControls" class="card">
-                <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="settingsHeader"></div>
-                <label for="lgGameSelect" id="lgGameLabel"></label>
-                <select id="lgGameSelect">
-                    <option value="clash"></option>
-                    <option value="dota"></option>
-                </select>
-                <button id="lgStartBtn" type="button" style="display:none;"></button>
-                <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
-            </div>
+                <!-- admin/lobby controls -->
+                <div id="centerControls" class="card">
+                    <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="settingsHeader"></div>
+                    <label for="lgGameSelect" id="lgGameLabel"></label>
+                    <select id="lgGameSelect">
+                        <option value="clash"></option>
+                        <option value="dota"></option>
+                    </select>
+                    <button id="lgStartBtn" type="button" style="display:none;"></button>
+                    <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
+                </div>
 
-            <div id="centerError" class="error-box" style="display:none;"></div>
+                <div id="centerError" class="error-box" style="display:none;"></div>
+            </div>
         </div>
 
         <!-- RIGHT: Actions -->
@@ -653,21 +681,21 @@ const gameModes = {
 // ─── i18n ───────────────────────────────────────────────────────
 const i18n = {
     ru: {
-        pageTitle: "finkizet game",
-        msHeading: "Шпион", msSubtitle: "Вечеринковая игра на 4–10 игроков",
+        pageTitle: "Spy game",
+        msHeading: "Шпион", msSubtitle: "Вечеринковая игра на 4-10 игроков",
         msOnlineLabel: "Играть онлайн", msOnlineSub: "Общее лобби, роли раздаёт сервер",
-        msOfflineLabel: "Играть офлайн", msOfflineSub: "Без интернета — нужен только чат",
+        msOfflineLabel: "Играть офлайн", msOfflineSub: "Без интернета – у каждого своё устройство",
         backLabel: "Назад",
         labelGame: "Игра", helpGameMode: "Выбор игры меняет список карт/героев.",
         spyRole: "🕵️ Шпион", resultTitle: "Твоя роль:",
         offlineHeading: "Офлайн-режим",
-        offlineSubtitle: "Договоритесь об общем коде и количестве игроков.",
+        offlineSubtitle: "Договоритесь об общем коде и введите одинаковые значения.",
         labelSeed: "Общий код / seed", seedPlaceholder: "Например: 548129",
         helpSeed: "Все игроки вводят одинаковый код.",
         labelPlayers: "Количество игроков", helpPlayers: "Максимум 10.",
         labelPlayerIndex: "Твой номер игрока", helpPlayerIndex: "Уникальный номер от 1 до числа игроков.",
         showButton: "Показать мою роль",
-        footerText: "⚠ Вводите коды аккуратно — все должны ввести одинаковый.",
+        footerText: "⚠ Вводите коды аккуратно — все должны ввести одинаковые параметры.",
         errors: {
             noSeed: "Введите общий код.", playersMin: "Минимум 2 игрока.",
             playersMax: "Максимум 10 игроков.", badIndex: "Номер игрока от 1 до числа игроков.",
@@ -720,7 +748,7 @@ const i18n = {
         labelGame: "Game", helpGameMode: "Changes the card/hero list.",
         spyRole: "🕵️ Spy", resultTitle: "Your role:",
         offlineHeading: "Offline mode",
-        offlineSubtitle: "Agree on a shared code and player count.",
+        offlineSubtitle: "Agree on a shared code and enter the same values.",
         labelSeed: "Shared code / seed", seedPlaceholder: "E.g. 548129",
         helpSeed: "All players must enter the same code.",
         labelPlayers: "Number of players", helpPlayers: "Maximum 10.",
@@ -1272,6 +1300,7 @@ function renderLobbyState(state) {
     currentLobbyState = state;
     const lang = langSelect.value, t = i18n[lang];
     const isAdmin = state.adminSocketId === socket.id;
+    centerControls.style.display = isAdmin ? 'flex' : 'none';
     currentGameState = state.state;
 
     // top bar
