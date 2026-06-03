@@ -708,14 +708,14 @@ function resolveFinishVote(lobby) {
 
   lobby.finishVoteState = null;
 
-  // determine spies still in game
+  // determine spies still active in game (not kicked by vote and not kicked for wrong guess)
   let spiesAlive = 0;
   if (lobby.round && lobby.round.assigned) {
     for (const [idxStr, role] of Object.entries(lobby.round.assigned)) {
       if (role && role.id === 'spy') {
-        // check if still in lobby
-        const stillIn = Object.values(lobby.players).some(p => p.index === Number(idxStr));
-        if (stillIn) spiesAlive++;
+        // must be present in lobby AND not kicked
+        const activePlayer = Object.values(lobby.players).find(p => p.index === Number(idxStr) && !p.kicked);
+        if (activePlayer) spiesAlive++;
       }
     }
   }
