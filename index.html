@@ -387,6 +387,11 @@
         #gameResultBox .gr-desc { font-size: 0.9rem; color: #9ca3af; margin-bottom: 16px; }
         #gameResultBox button { margin-top: 8px; }
 
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
         /* ── OFFLINE SCREEN ── */
         #offlineScreen {
             display: none; max-width: 480px; margin: 0 auto;
@@ -1689,8 +1694,9 @@ socket.on('match_ended', ({ winner, spiesAlive, yesVotes, noVotes }) => {
     gameResultOverlay.classList.add('show');
     if (winner === 'spy') {
         grIcon.textContent  = '🕵️';
-        grTitle.textContent = 'Победа шпиона!';
-        grDesc.textContent  = `Шпион не был пойман. Команда проиграла.`;
+        const spyCountText = spiesAlive === 1 ? 'Шпион' : spiesAlive > 0 ? `${spiesAlive} шпиона` : 'Шпионы';
+        grTitle.textContent = 'Победа шпионов!';
+        grDesc.textContent  = `${spyCountText} не ${spiesAlive === 1 ? 'был пойман' : 'были пойманы'}. Команда проиграла.`;
     } else {
         grIcon.textContent  = '🎉';
         grTitle.textContent = 'Победа команды!';
@@ -1698,11 +1704,29 @@ socket.on('match_ended', ({ winner, spiesAlive, yesVotes, noVotes }) => {
     }
 });
 
+socket.on('spy_failed', ({ nick, msg }) => {
+    // Show a notification that the spy guessed wrong and is now inactive
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; border: 1px solid #ef4444; border-radius: 12px;
+        padding: 12px 20px; font-size: 0.9rem; color: #fecaca;
+        z-index: 9999; text-align: center; max-width: 340px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        animation: fadeInUp .3s ease;
+    `;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+});
+
+
 socket.on('reveal_spies', ({ spies, sharedItem }) => {
     const lang = langSelect.value;
     const itemName = sharedItem ? getLocalizedName(sharedItem, lang) : '?';
     const spyNames = spies.map(s => s.nick).join(', ');
-    grSpyReveal.textContent = `Шпион(ы): ${spyNames} · Карта была: ${itemName}`;
+    const spyLabel = spies.length === 1 ? 'Шпион' : 'Шпионы';
+    grSpyReveal.textContent = `${spyLabel}: ${spyNames} · Карта была: ${itemName}`;
 });
 
 grCloseBtn.addEventListener('click', () => {

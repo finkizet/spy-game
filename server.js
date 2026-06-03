@@ -505,11 +505,22 @@ io.on('connection', (socket) => {
       });
       io.to(code).emit('spy_guess_result', { correct: true, spyNick: player.nick, guessId, correctId, winner: 'spy' });
     } else {
+      // Mark spy as kicked (inactive) until the next round
+      player.kicked = true;
+
       addChatMessage(lobby, {
         type: 'system',
-        text: `❌ Шпион ${escapeNick(player.nick)} не угадал карту. Победа команды!`
+        text: `❌ Шпион ${escapeNick(player.nick)} не угадал карту и выбыл до конца следующего раунда!`
       });
+
+      // Notify all players about the failed spy guess
+      io.to(code).emit('spy_failed', {
+        nick: player.nick,
+        msg: `🕵️ ${player.nick} попытался угадать, но ошибся и был исключён до конца следующего раунда!`
+      });
+
       io.to(code).emit('spy_guess_result', { correct: false, spyNick: player.nick, guessId, correctId, winner: 'team' });
+      io.to(code).emit('lobby_update', publicLobbyState(lobby));
     }
 
     if (cb) cb({ ok: true, correct, correctId });
@@ -714,7 +725,8 @@ function resolveFinishVote(lobby) {
     let winner, msg;
     if (spiesAlive > 0) {
       winner = 'spy';
-      msg = `🕵️ Матч завершён! Шпион(ы) не были пойманы — победа шпионов! (${yesVotes} за / ${noVotes} против)`;
+      const spyCountText = spiesAlive === 1 ? 'шпион' : spiesAlive < 5 ? `${spiesAlive} шпиона` : `${spiesAlive} шпионов`;
+      msg = `🕵️ Матч завершён! ${spyCountText.charAt(0).toUpperCase() + spyCountText.slice(1)} не ${spiesAlive === 1 ? 'был пойман' : 'были пойманы'} — победа шпионов! (${yesVotes} за / ${noVotes} против)`;
     } else {
       winner = 'team';
       msg = `🎉 Матч завершён! Все шпионы пойманы — победа команды! (${yesVotes} за / ${noVotes} против)`;
