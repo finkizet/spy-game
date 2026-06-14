@@ -163,10 +163,12 @@ function resolveVote(lobby) {
 
   const activePlayers = Object.values(lobby.players).filter(canVote);
 
-  // tally votes (skip = null)
+  // tally votes (skip = null, not counted toward majority threshold)
   const tally = {};
+  let nonSkipVotes = 0;
   for (const [, vote] of Object.entries(vs.votes)) {
-    if (vote === null) continue; // skip
+    if (vote === null) continue; // skip — ignored entirely for majority calculation
+    nonSkipVotes++;
     tally[vote] = (tally[vote] || 0) + 1;
   }
 
@@ -182,9 +184,12 @@ function resolveVote(lobby) {
   vs.phase = 'done';
   io.to(code).emit('vote_state', vs);
 
-  if (!maxTarget || tie || maxVotes === 0) {
-    // ничья или все проголосовали пропустить
-    addChatMessage(lobby, { type: 'system', text: '🤝 Голосование завершилось вничью — никто не изгнан.' });
+  // Kick only if the top target's votes form a strict majority of non-skip votes.
+  // If most players voted "skip", or there's a tie, or no one voted, no one is kicked.
+  const actualKicks = maxTarget !== null ? maxVotes : 0;
+  if (!maxTarget || tie || actualKicks === 0 || nonSkipVotes === 0 || actualKicks <= nonSkipVotes / 2) {
+    // ничья, все пропустили, или нет реального большинства "за"
+    addChatMessage(lobby, { type: 'system', text: '🤝 Голосование завершилось — никто не изгнан.' });
     lobby.voteState = null;
     io.to(code).emit('vote_ended', { kicked: null });
     return;
@@ -410,6 +415,8 @@ io.on('connection', (socket) => {
     };
     lobby.voteState = null;
     if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
+    lobby.finishVoteState = null;
+    if (lobby.finishVoteTimer) { clearTimeout(lobby.finishVoteTimer); lobby.finishVoteTimer = null; }
 
     // reset kicked flags — everyone is active in the new round
     for (const p of Object.values(lobby.players)) {
@@ -436,9 +443,11 @@ io.on('connection', (socket) => {
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
     if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
+    if (lobby.finishVoteTimer) { clearTimeout(lobby.finishVoteTimer); lobby.finishVoteTimer = null; }
     lobby.state = 'lobby';
     lobby.round = null;
     lobby.voteState = null;
+    lobby.finishVoteState = null;
     lobby.seed = randInt32();
     io.to(code).emit('round_ended', publicLobbyState(lobby));
     addChatMessage(lobby, { type: 'system', text: '🔄 Раунд завершён. Ожидание нового раунда...' });
@@ -512,7 +521,7 @@ io.on('connection', (socket) => {
         type: 'system',
         text: `🎉 Шпион ${escapeNick(player.nick)} угадал карту и победил!`
       });
-      io.to(code).emit('spy_guess_result', { correct: true, spyNick: player.nick, guessId, correctId, winner: 'spy' });
+      socket.emit('spy_guess_result', { correct: true, spyNick: player.nick, guessId, correctId, winner: 'spy' });
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
     } else {
       // Mark as having used their guess (wrong) — excludes them from voting,
@@ -530,7 +539,7 @@ io.on('connection', (socket) => {
         msg: `🕵️ ${player.nick} попытался угадать, но ошибся и больше не может голосовать в этом раунде!`
       });
 
-      io.to(code).emit('spy_guess_result', { correct: false, spyNick: player.nick, guessId, correctId, winner: 'team' });
+      socket.emit('spy_guess_result', { correct: false, spyNick: player.nick, guessId, correctId, winner: 'team' });
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
     }
 
