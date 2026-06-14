@@ -112,7 +112,7 @@ app.get('/api/lobbies/debug', async (req, res) => {
         ? { mode: 'set', count: l.nextSpyCount } : { mode: 'random' },
       round: roundInfo,
       players: Object.entries(l.players).map(([sid, p]) => ({
-        index: p.index, nick: p.nick, isAdmin: sid === l.adminSocketId, kicked: p.kicked
+        index: p.index, nick: p.nick, isAdmin: sid === l.adminSocketId, kicked: p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong
       }))
     };
   });
@@ -137,7 +137,7 @@ function publicLobbyState(lobby) {
     state: lobby.state,
     adminSocketId: lobby.adminSocketId,
     players: Object.entries(lobby.players).map(([sid, p]) => ({
-      socketId: sid, nick: p.nick, index: p.index, state: p.state, kicked: !!p.kicked, color: p.color || '#60a5fa'
+      socketId: sid, nick: p.nick, index: p.index, state: p.state, kicked: !!p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong, color: p.color || '#60a5fa'
     })),
     roundInfo: lobby.round ? { startedAt: lobby.round.startedAt, spyGuessed: lobby.round.spyGuessed } : null,
     createdAt: lobby.createdAt,
@@ -161,7 +161,7 @@ function resolveVote(lobby) {
   const vs = lobby.voteState;
   if (!vs || vs.phase !== 'voting') return;
 
-  const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+  const activePlayers = Object.values(lobby.players).filter(canVote);
 
   // tally votes (skip = null)
   const tally = {};
@@ -224,6 +224,13 @@ function resolveVote(lobby) {
 
 function escapeNick(s) {
   return String(s).replace(/[<>"'&]/g, '');
+}
+
+// A player can participate in votes only if they're not kicked,
+// haven't already won by guessing correctly, and haven't used up
+// their wrong guess (guessedWrong).
+function canVote(p) {
+  return !p.kicked && !p.winner && !p.guessedWrong;
 }
 
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
@@ -295,7 +302,7 @@ io.on('connection', (socket) => {
       createdAt: Date.now()
     };
     const index = 1;
-    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, color: socket.data.color || '#60a5fa' };
+    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
     socket.join(code);
     socket.data.lobby = code;
     LOBBIES[code] = lobby;
@@ -323,7 +330,7 @@ io.on('connection', (socket) => {
       if (taken) { if (cb) cb({ error: 'Index already taken' }); return; }
     }
 
-    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, color: socket.data.color || '#60a5fa' };
+    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
     socket.join(code);
     socket.data.lobby = code;
     if (cb) cb({ ok: true, code, yourIndex: index });
@@ -399,8 +406,7 @@ io.on('connection', (socket) => {
     lobby.round = {
       startedAt: Date.now(), seed: lobby.seed, assigned, theme,
       sharedItem, spyCount,
-      spyGuessed: false,
-      spyGuessUsed: false
+      spyGuessed: false
     };
     lobby.voteState = null;
     if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
@@ -408,6 +414,8 @@ io.on('connection', (socket) => {
     // reset kicked flags — everyone is active in the new round
     for (const p of Object.values(lobby.players)) {
       p.kicked = false;
+      p.winner = false;
+      p.guessedWrong = false;
     }
 
     // notify players privately
@@ -489,33 +497,37 @@ io.on('connection', (socket) => {
     const role = lobby.round.assigned[player.index];
     if (!role || role.id !== 'spy') { if (cb) cb({ error: 'You are not the spy' }); return; }
 
-    if (lobby.round.spyGuessUsed) { if (cb) cb({ error: 'Already guessed' }); return; }
-
-    lobby.round.spyGuessUsed = true;
+    // Per-player check: each spy gets exactly one guess attempt, independent of teammates.
+    if (player.winner || player.guessedWrong) {
+      if (cb) cb({ error: 'You have already tried to guess' }); return;
+    }
 
     const correctId = lobby.round.sharedItem.id;
     const correct = guessId === correctId;
 
     if (correct) {
+      player.winner = true;
       lobby.round.spyGuessed = true;
       addChatMessage(lobby, {
         type: 'system',
         text: `🎉 Шпион ${escapeNick(player.nick)} угадал карту и победил!`
       });
       io.to(code).emit('spy_guess_result', { correct: true, spyNick: player.nick, guessId, correctId, winner: 'spy' });
+      io.to(code).emit('lobby_update', publicLobbyState(lobby));
     } else {
-      // Mark spy as kicked (inactive) until the next round
-      player.kicked = true;
+      // Mark as having used their guess (wrong) — excludes them from voting,
+      // but does NOT mark them as "kicked" (avoids confusing kicked-by-vote messages).
+      player.guessedWrong = true;
 
       addChatMessage(lobby, {
         type: 'system',
-        text: `❌ Шпион ${escapeNick(player.nick)} не угадал карту и выбыл до конца следующего раунда!`
+        text: `❌ Шпион ${escapeNick(player.nick)} не угадал карту и выбыл из голосований до конца раунда!`
       });
 
       // Notify all players about the failed spy guess
       io.to(code).emit('spy_failed', {
         nick: player.nick,
-        msg: `🕵️ ${player.nick} попытался угадать, но ошибся и был исключён до конца следующего раунда!`
+        msg: `🕵️ ${player.nick} попытался угадать, но ошибся и больше не может голосовать в этом раунде!`
       });
 
       io.to(code).emit('spy_guess_result', { correct: false, spyNick: player.nick, guessId, correctId, winner: 'team' });
@@ -531,6 +543,7 @@ io.on('connection', (socket) => {
     if (!lobby || !lobby.round) { if (cb) cb({ error: 'No active round' }); return; }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
     if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot start votes' }); return; }
+    if (!canVote(lobby.players[socket.id])) { if (cb) cb({ error: 'You can no longer participate in votes' }); return; }
     if (lobby.voteState && lobby.voteState.phase === 'voting') {
       if (cb) cb({ error: 'Vote already in progress' }); return;
     }
@@ -538,7 +551,7 @@ io.on('connection', (socket) => {
       if (cb) cb({ error: 'Finish vote in progress' }); return;
     }
 
-    const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+    const activePlayers = Object.values(lobby.players).filter(canVote);
 
     if (activePlayers.length <= 2) {
       if (cb) cb({ error: 'Нельзя голосовать за изгнание при 2 или менее активных игроках.' });
@@ -584,6 +597,7 @@ io.on('connection', (socket) => {
     }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
     if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'You are expelled' }); return; }
+    if (!canVote(lobby.players[socket.id])) { if (cb) cb({ error: 'You can no longer participate in votes' }); return; }
 
     // already voted?
     if (socket.id in lobby.voteState.votes) {
@@ -593,7 +607,7 @@ io.on('connection', (socket) => {
     // null = skip, number = target index
     lobby.voteState.votes[socket.id] = targetIndex === null ? null : Number(targetIndex);
 
-    const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+    const activePlayers = Object.values(lobby.players).filter(canVote);
     const totalActive = activePlayers.length;
     const votedCount = Object.keys(lobby.voteState.votes).length;
 
@@ -612,6 +626,7 @@ io.on('connection', (socket) => {
     if (!lobby || !lobby.round) { if (cb) cb({ error: 'No active round' }); return; }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
     if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot start votes' }); return; }
+    if (!canVote(lobby.players[socket.id])) { if (cb) cb({ error: 'You can no longer participate in votes' }); return; }
     if (lobby.finishVoteState && lobby.finishVoteState.phase === 'voting') {
       if (cb) cb({ error: 'Finish vote already in progress' }); return;
     }
@@ -627,7 +642,7 @@ io.on('connection', (socket) => {
       votes: {} // socketId -> 'yes' | 'no'
     };
 
-    const fvActivePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+    const fvActivePlayers = Object.values(lobby.players).filter(canVote);
     io.to(code).emit('finish_vote_started', {
       finishVoteState: lobby.finishVoteState,
       duration: VOTE_DURATION,
@@ -641,7 +656,7 @@ io.on('connection', (socket) => {
       if (!l || !l.finishVoteState || l.finishVoteState.phase !== 'voting') return;
       // fill missing as 'no'
       for (const [sid, p] of Object.entries(l.players)) {
-        if (!p.kicked && !(sid in l.finishVoteState.votes)) l.finishVoteState.votes[sid] = 'no';
+        if (canVote(p) && !(sid in l.finishVoteState.votes)) l.finishVoteState.votes[sid] = 'no';
       }
       resolveFinishVote(l);
     }, VOTE_DURATION * 1000);
@@ -656,11 +671,12 @@ io.on('connection', (socket) => {
     }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
     if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot vote to finish' }); return; }
+    if (!canVote(lobby.players[socket.id])) { if (cb) cb({ error: 'You can no longer participate in votes' }); return; }
     if (socket.id in lobby.finishVoteState.votes) { if (cb) cb({ error: 'Already voted' }); return; }
 
     lobby.finishVoteState.votes[socket.id] = answer === 'yes' ? 'yes' : 'no';
 
-    const totalActive = Object.values(lobby.players).filter(p => !p.kicked).length;
+    const totalActive = Object.values(lobby.players).filter(canVote).length;
     const votedCount = Object.keys(lobby.finishVoteState.votes).length;
     io.to(code).emit('finish_vote_update', { votedCount, totalActive });
     if (cb) cb({ ok: true });

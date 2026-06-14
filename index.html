@@ -251,6 +251,8 @@
         .pl-item .pl-tag.admin { background: #1e3a5f; color: #60a5fa; }
         .pl-item .pl-tag.you   { background: #1a2e1a; color: #4ade80; }
         .pl-item .pl-tag.kicked{ background: #2a1a1a; color: #f87171; }
+        .pl-item .pl-tag.winner{ background: #2a2410; color: #fbbf24; }
+        .pl-item .pl-tag.guessedWrong{ background: #2a1a1a; color: #f87171; }
         .pl-item.pl-kicked {
             opacity: 0.45;
             border-color: #3a1a1a;
@@ -258,6 +260,14 @@
         }
         .pl-item.pl-kicked .pl-nick { text-decoration: line-through; color: #6b7280; }
         .pl-item.pl-kicked .pl-idx  { background: #2a1a1a; color: #f87171; }
+        .pl-item.pl-winner {
+            border-color: #4a3a10;
+        }
+        .pl-item.pl-winner .pl-idx { background: #2a2410; color: #fbbf24; }
+        .pl-item.pl-guessedWrong {
+            opacity: 0.7;
+        }
+        .pl-item.pl-guessedWrong .pl-idx { background: #2a1a1a; color: #f87171; }
 
         /* lobby controls */
         #centerControls { display: flex; flex-direction: column; gap: 8px; }
@@ -734,7 +744,7 @@ const i18n = {
         voted: (n,t) => `Проголосовало ${n}/${t}`,
         finishVoted: (n,t) => `Проголосовало ${n}/${t}`,
         timerLeft: (s) => `⏱ ${s}с`,
-        tagYou: 'ты', tagKicked: 'изгнан',
+        tagYou: 'ты', tagKicked: 'изгнан', tagWinner: '🏆 угадал', tagGuessedWrong: '❌ не угадал',
         copyCode: "Скопировано!",
         sgConfirmDialog: (name) => `Угадать: "${name}"? Это ваша единственная попытка!`,
         sgConfirmBtn: '✓ Подтвердить',
@@ -794,7 +804,7 @@ const i18n = {
         voted: (n,t) => `Voted ${n}/${t}`,
         finishVoted: (n,t) => `Voted ${n}/${t}`,
         timerLeft: (s) => `⏱ ${s}s`,
-        tagYou: 'you', tagKicked: 'out',
+        tagYou: 'you', tagKicked: 'out', tagWinner: '🏆 won', tagGuessedWrong: '❌ wrong guess',
         copyCode: "Copied!",
         sgConfirmDialog: (name) => `Guess: "${name}"? This is your only attempt!`,
         sgConfirmBtn: '✓ Confirm',
@@ -1331,7 +1341,7 @@ function renderLobbyState(state) {
     const lgLobbyMeta = document.getElementById('lgLobbyMeta');
     if (lgLobbyMeta) lgLobbyMeta.textContent = `${stateLabel} · ${state.players.length}/${state.playersCount}`;
 
-    // players — show all, kicked shown dimmed
+    // players — show all, kicked/winner/guessedWrong shown distinctly
     lgPlayers.innerHTML = state.players
         .sort((a, b) => a.index - b.index)
         .map(p => {
@@ -1341,7 +1351,14 @@ function renderLobbyState(state) {
             if (isYou)    tags.push(`<span class="pl-tag you">${i18n[lang].tagYou || 'ты'}</span>`);
             if (isAdminP) tags.push(`<span class="pl-tag admin">admin</span>`);
             if (p.kicked) tags.push(`<span class="pl-tag kicked">${i18n[lang].tagKicked || 'изгнан'}</span>`);
-            return `<div class="pl-item${p.kicked ? ' pl-kicked' : ''}">
+            if (p.winner) tags.push(`<span class="pl-tag winner">${i18n[lang].tagWinner || '🏆'}</span>`);
+            if (p.guessedWrong) tags.push(`<span class="pl-tag guessedWrong">${i18n[lang].tagGuessedWrong || '❌'}</span>`);
+            const stateClasses = [
+                p.kicked ? ' pl-kicked' : '',
+                p.winner ? ' pl-winner' : '',
+                p.guessedWrong ? ' pl-guessedWrong' : ''
+            ].join('');
+            return `<div class="pl-item${stateClasses}">
                 <div class="pl-idx">${p.index}</div>
                 <div class="pl-nick" style="color:${escapeHtml(p.color || '#60a5fa')}">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
@@ -1362,16 +1379,17 @@ function renderLobbyState(state) {
         if (state.state === 'in-round') {
             const meInLobby     = state.players.find(p => p.socketId === socket.id);
             const iAmKicked     = meInLobby && meInLobby.kicked;
-            const activePlayers = state.players.filter(p => !p.kicked);
+            const iCantVote     = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong);
+            const activePlayers = state.players.filter(p => !p.kicked && !p.winner && !p.guessedWrong);
             const tooFewToVote  = activePlayers.length <= 2;
 
-            // kicked players or small groups can't start/vote kick
-            startVoteBtn.style.display       = (myVotedThisRound || iAmKicked || tooFewToVote) ? 'none' : '';
-            // kicked players can't vote to finish match
-            startFinishVoteBtn.style.display = (finishVotedThisRound || iAmKicked) ? 'none' : '';
+            // kicked/winner/guessedWrong players or small groups can't start/vote kick
+            startVoteBtn.style.display       = (myVotedThisRound || iCantVote || tooFewToVote) ? 'none' : '';
+            // kicked/winner/guessedWrong players can't vote to finish match
+            startFinishVoteBtn.style.display = (finishVotedThisRound || iCantVote) ? 'none' : '';
 
-            // also disable spy guess panel for kicked spy
-            if (iAmKicked && spyGuessPanel.style.display !== 'none') {
+            // also disable spy guess panel once this player has used their guess
+            if ((iAmKicked || (meInLobby && (meInLobby.winner || meInLobby.guessedWrong))) && spyGuessPanel.style.display !== 'none') {
                 spyGuessPanel.style.display = 'none';
             }
         }
@@ -1688,9 +1706,9 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
     startFinishVoteBtn.style.display = 'none';
     startVoteBtn.style.display = 'none';
 
-    // Kicked players cannot vote to finish — hide the buttons entirely
+    // Kicked/winner/guessedWrong players cannot vote to finish — hide the buttons entirely
     const meInLobby = currentLobbyState ? currentLobbyState.players.find(p => p.socketId === socket.id) : null;
-    const iAmKickedFV = meInLobby && meInLobby.kicked;
+    const iAmKickedFV = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong);
     if (!iAmKickedFV) {
         finishVoteButtons.style.display = 'flex';
         finishYesBtn.disabled = false;
@@ -1699,7 +1717,7 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
         finishVoteButtons.style.display = 'none';
     }
 
-    const fvTotal = totalActive || (currentLobbyState ? currentLobbyState.players.filter(p => !p.kicked).length : '?');
+    const fvTotal = totalActive || (currentLobbyState ? currentLobbyState.players.filter(p => !p.kicked && !p.winner && !p.guessedWrong).length : '?');
     finishVoteProgress.textContent = t.finishVoted(0, fvTotal);
     startFinishVoteTimer(duration || 30, fvTotal);
 });
