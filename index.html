@@ -1300,6 +1300,21 @@ function enterLobbyScreen(state) {
 
 function showCenterError(msg) { centerError.textContent = msg; centerError.style.display = 'block'; setTimeout(() => centerError.style.display='none', 4000); }
 
+function showSystemToast(msg, borderColor = '#3b82f6') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        background: #1e293b; border: 1px solid ${borderColor}; border-radius: 12px;
+        padding: 12px 20px; font-size: 0.9rem; color: #f1f5f9;
+        z-index: 9999; text-align: center; max-width: 340px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        animation: fadeInUp .3s ease;
+    `;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+}
+
 // ─── render lobby state ─────────────────────────────────────────
 function renderLobbyState(state) {
     if (!state) return;
@@ -1539,10 +1554,13 @@ socket.on('spy_guess_result', ({ correct, spyNick, guessId, correctId, winner })
     const correctItem = items.find(i => i.id === correctId);
     const correctName = correctItem ? getLocalizedName(correctItem, lang) : correctId;
 
-    spyGuessResult.style.display = 'block';
     if (correct) {
-        spyGuessResult.innerHTML = `<span style="color:#4ade80;">✓ ${escapeHtml(spyNick)} ${t.sgGuessCorrect(correctName)}</span>`;
+        // Correct guess: show system toast — overlay is handled by match_ended
+        showSystemToast(`🎉 ${escapeHtml(spyNick)} угадал карту — победа шпиона!`, '#4ade80');
+        spyGuessResult.style.display = 'none';
     } else {
+        // Wrong guess: show inline feedback in spy panel
+        spyGuessResult.style.display = 'block';
         spyGuessResult.innerHTML = `<span style="color:#f87171;">✗ ${t.sgGuessWrong(correctName)}</span>`;
     }
 });
@@ -1669,9 +1687,18 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
     finishVotedThisRound = false;
     startFinishVoteBtn.style.display = 'none';
     startVoteBtn.style.display = 'none';
-    finishVoteButtons.style.display = 'flex';
-    finishYesBtn.disabled = false;
-    finishNoBtn.disabled = false;
+
+    // Kicked players cannot vote to finish — hide the buttons entirely
+    const meInLobby = currentLobbyState ? currentLobbyState.players.find(p => p.socketId === socket.id) : null;
+    const iAmKickedFV = meInLobby && meInLobby.kicked;
+    if (!iAmKickedFV) {
+        finishVoteButtons.style.display = 'flex';
+        finishYesBtn.disabled = false;
+        finishNoBtn.disabled = false;
+    } else {
+        finishVoteButtons.style.display = 'none';
+    }
+
     const fvTotal = totalActive || (currentLobbyState ? currentLobbyState.players.filter(p => !p.kicked).length : '?');
     finishVoteProgress.textContent = t.finishVoted(0, fvTotal);
     startFinishVoteTimer(duration || 30, fvTotal);
@@ -1719,19 +1746,7 @@ socket.on('match_ended', ({ winner, spiesAlive, yesVotes, noVotes }) => {
 });
 
 socket.on('spy_failed', ({ nick, msg }) => {
-    // Show a notification that the spy guessed wrong and is now inactive
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-        background: #1e293b; border: 1px solid #ef4444; border-radius: 12px;
-        padding: 12px 20px; font-size: 0.9rem; color: #fecaca;
-        z-index: 9999; text-align: center; max-width: 340px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        animation: fadeInUp .3s ease;
-    `;
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 5000);
+    showSystemToast(msg, '#ef4444');
 });
 
 
@@ -1747,15 +1762,7 @@ grCloseBtn.addEventListener('click', () => {
     gameResultOverlay.classList.remove('show');
 });
 
-socket.on('spy_guess_result', ({ correct, spyNick, correctId, winner }) => {
-    // also show overlay on spy_guess if it's decisive
-    if (correct) {
-        grIcon.textContent  = '🕵️'; grTitle.textContent = 'Шпион угадал!';
-        grDesc.textContent  = `${escapeHtml(spyNick)} угадал карту с первой попытки — победа шпиона!`;
-        grSpyReveal.textContent = '';
-        gameResultOverlay.classList.add('show');
-    }
-});
+// spy_guess_result overlay removed — result is now shown via system toast + match_ended event
 
 // ─── lobby / round events ─────────────────────────────────────────
 socket.on('lobby_update',  (s) => { currentLobbyState = s; if (currentLobbyCode) renderLobbyState(s); });
