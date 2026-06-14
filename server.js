@@ -163,12 +163,10 @@ function resolveVote(lobby) {
 
   const activePlayers = Object.values(lobby.players).filter(canVote);
 
-  // tally votes (skip = null, not counted toward majority threshold)
+  // tally votes (skip = null, ignored entirely — no one's tally is incremented)
   const tally = {};
-  let nonSkipVotes = 0;
   for (const [, vote] of Object.entries(vs.votes)) {
-    if (vote === null) continue; // skip — ignored entirely for majority calculation
-    nonSkipVotes++;
+    if (vote === null) continue; // skip
     tally[vote] = (tally[vote] || 0) + 1;
   }
 
@@ -184,10 +182,10 @@ function resolveVote(lobby) {
   vs.phase = 'done';
   io.to(code).emit('vote_state', vs);
 
-  // Kick only if the top target's votes form a strict majority of non-skip votes.
-  // If most players voted "skip", or there's a tie, or no one voted, no one is kicked.
+  // Kick only if the top target's votes form a strict majority of active players
+  // (skip votes count toward the total but never toward anyone's tally).
   const actualKicks = maxTarget !== null ? maxVotes : 0;
-  if (!maxTarget || tie || actualKicks === 0 || nonSkipVotes === 0 || actualKicks <= nonSkipVotes / 2) {
+  if (!maxTarget || tie || actualKicks === 0 || actualKicks <= activePlayers.length / 2) {
     // ничья, все пропустили, или нет реального большинства "за"
     addChatMessage(lobby, { type: 'system', text: '🤝 Голосование завершилось — никто не изгнан.' });
     lobby.voteState = null;

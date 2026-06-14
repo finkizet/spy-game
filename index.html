@@ -1750,6 +1750,9 @@ socket.on('finish_vote_rejected', () => {
 
 // ─── match ended ─────────────────────────────────────────────────
 socket.on('match_ended', ({ winner, spiesAlive, yesVotes, noVotes }) => {
+    hideFinishVoteTimer();
+    finishVoteButtons.style.display = 'none';
+    finishVoteProgress.textContent = '';
     gameResultOverlay.classList.add('show');
     if (winner === 'spy') {
         grIcon.textContent  = '🕵️';
@@ -1784,7 +1787,17 @@ grCloseBtn.addEventListener('click', () => {
 
 // ─── lobby / round events ─────────────────────────────────────────
 socket.on('lobby_update',  (s) => { currentLobbyState = s; if (currentLobbyCode) renderLobbyState(s); });
-socket.on('round_started', (s) => { currentLobbyState = s; if (currentLobbyCode) renderLobbyState(s); });
+socket.on('round_started', (s) => {
+    currentLobbyState = s;
+    // server resets/clears any in-progress finish vote on new round — sync the UI
+    hideFinishVoteTimer();
+    hideVoteTimer();
+    finishVoteButtons.style.display = 'none';
+    finishVoteProgress.textContent = '';
+    finishVotedThisRound = false;
+    myVotedThisRound = false;
+    if (currentLobbyCode) renderLobbyState(s);
+});
 socket.on('round_ended',   (s) => {
     currentLobbyState = s;
     if (!currentLobbyCode) return;
