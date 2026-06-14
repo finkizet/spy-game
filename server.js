@@ -202,18 +202,16 @@ function resolveVote(lobby) {
   const [targetSid, targetPlayer] = targetEntry;
   targetPlayer.kicked = true;
 
-  // reveal if they were spy
-  let wasSpyText = '';
+  // determine wasSpy for internal logic only — role NOT revealed in chat
   let wasSpy = false;
   if (lobby.round && lobby.round.assigned) {
     const role = lobby.round.assigned[targetIndex];
     wasSpy = !!(role && role.id === 'spy');
-    wasSpyText = wasSpy ? ' (был шпионом 🕵️)' : ' (был не шпионом)';
   }
 
   addChatMessage(lobby, {
     type: 'system',
-    text: `🚪 ${escapeNick(targetPlayer.nick)} изгнан голосованием${wasSpyText}.`
+    text: `🚪 ${escapeNick(targetPlayer.nick)} изгнан голосованием.`
   });
 
   // NOT kicked from the room — they stay but are marked kicked (silenced)
@@ -486,6 +484,7 @@ io.on('connection', (socket) => {
 
     const player = lobby.players[socket.id];
     if (!player) { if (cb) cb({ error: 'Not in lobby' }); return; }
+    if (player.kicked) { if (cb) cb({ error: 'Expelled players cannot guess the location' }); return; }
 
     const role = lobby.round.assigned[player.index];
     if (!role || role.id !== 'spy') { if (cb) cb({ error: 'You are not the spy' }); return; }
@@ -540,6 +539,12 @@ io.on('connection', (socket) => {
     }
 
     const activePlayers = Object.values(lobby.players).filter(p => !p.kicked);
+
+    if (activePlayers.length <= 2) {
+      if (cb) cb({ error: 'Нельзя голосовать за изгнание при 2 или менее активных игроках.' });
+      return;
+    }
+
     const VOTE_DURATION = 60; // seconds
 
     lobby.voteState = {
@@ -650,6 +655,7 @@ io.on('connection', (socket) => {
       if (cb) cb({ error: 'No active finish vote' }); return;
     }
     if (!lobby.players[socket.id]) { if (cb) cb({ error: 'Not in lobby' }); return; }
+    if (lobby.players[socket.id].kicked) { if (cb) cb({ error: 'Expelled players cannot vote to finish' }); return; }
     if (socket.id in lobby.finishVoteState.votes) { if (cb) cb({ error: 'Already voted' }); return; }
 
     lobby.finishVoteState.votes[socket.id] = answer === 'yes' ? 'yes' : 'no';

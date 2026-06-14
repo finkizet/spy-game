@@ -1345,8 +1345,20 @@ function renderLobbyState(state) {
         lgNextRoundBtn.textContent   = t.nextRoundBtn;
         // actions
         if (state.state === 'in-round') {
-            startVoteBtn.style.display    = myVotedThisRound ? 'none' : '';
-            startFinishVoteBtn.style.display = finishVotedThisRound ? 'none' : '';
+            const meInLobby     = state.players.find(p => p.socketId === socket.id);
+            const iAmKicked     = meInLobby && meInLobby.kicked;
+            const activePlayers = state.players.filter(p => !p.kicked);
+            const tooFewToVote  = activePlayers.length <= 2;
+
+            // kicked players or small groups can't start/vote kick
+            startVoteBtn.style.display       = (myVotedThisRound || iAmKicked || tooFewToVote) ? 'none' : '';
+            // kicked players can't vote to finish match
+            startFinishVoteBtn.style.display = (finishVotedThisRound || iAmKicked) ? 'none' : '';
+
+            // also disable spy guess panel for kicked spy
+            if (iAmKicked && spyGuessPanel.style.display !== 'none') {
+                spyGuessPanel.style.display = 'none';
+            }
         }
     } else {
         lgStartBtn.style.display     = isAdmin ? '' : 'none';
