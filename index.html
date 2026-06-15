@@ -1749,21 +1749,21 @@ socket.on('finish_vote_rejected', () => {
 });
 
 // ─── match ended ─────────────────────────────────────────────────
-socket.on('match_ended', ({ winner, spiesAlive, yesVotes, noVotes }) => {
+socket.on('match_ended', ({ winner, spiesAlive, spyCount, spiesInfo, yesVotes, noVotes, message }) => {
     hideFinishVoteTimer();
     finishVoteButtons.style.display = 'none';
     finishVoteProgress.textContent = '';
     gameResultOverlay.classList.add('show');
     if (winner === 'spy') {
         grIcon.textContent  = '🕵️';
-        const spyCountText = spiesAlive === 1 ? 'Шпион' : spiesAlive > 0 ? `${spiesAlive} шпиона` : 'Шпионы';
         grTitle.textContent = 'Победа шпионов!';
-        grDesc.textContent  = `${spyCountText} не ${spiesAlive === 1 ? 'был пойман' : 'были пойманы'}. Команда проиграла.`;
     } else {
         grIcon.textContent  = '🎉';
         grTitle.textContent = 'Победа команды!';
-        grDesc.textContent  = `Все шпионы пойманы. Отличная работа!`;
     }
+    grDesc.textContent = message || (winner === 'spy'
+        ? `${spiesAlive} шпион(ов) не пойманы. Команда проиграла.`
+        : 'Все шпионы пойманы. Отличная работа!');
 });
 
 socket.on('spy_failed', ({ nick, msg }) => {

@@ -236,6 +236,41 @@ function canVote(p) {
   return !p.kicked && !p.winner && !p.guessedWrong;
 }
 
+// Russian pluralization for "шпион" (1 шпион, 2 шпиона, 5 шпионов)
+function pluralizeSpy(n) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} шпион`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} шпиона`;
+  return `${n} шпионов`;
+}
+
+function getItemName(item) {
+  if (!item) return '?';
+  if (typeof item === 'string') return item;
+  return item.ru || item.en || item.id || '?';
+}
+
+// Builds the final end-of-match message.
+// spyCount    — total number of spies in the round.
+// spiesInfo   — array of { nick, status: 'captured' | 'guessed' | 'free' }.
+// itemName    — name of the shared location/card for this round.
+function generateEndGameMessage(spyCount, spiesInfo, itemName) {
+  const freeCount = spiesInfo.filter(s => s.status === 'free').length;
+
+  let mainText;
+  if (freeCount === 0) {
+    mainText = '🎉 Победа команды! Все шпионы пойманы.';
+  } else {
+    mainText = `🕵️ ${pluralizeSpy(freeCount)} не ${freeCount === 1 ? 'был пойман' : 'были пойманы'}. Команда проиграла.`;
+  }
+
+  const spyNames = spiesInfo.map(s => s.nick).join(', ');
+  const suffix = `Шпионы: ${spyNames}. Карта была: ${itemName}.`;
+
+  return `${mainText} ${suffix}`;
+}
+
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
@@ -737,42 +772,46 @@ function resolveFinishVote(lobby) {
 
   lobby.finishVoteState = null;
 
-  // determine spies still active in game (not kicked by vote and not kicked for wrong guess)
-  let spiesAlive = 0;
-  if (lobby.round && lobby.round.assigned) {
-    for (const [idxStr, role] of Object.entries(lobby.round.assigned)) {
-      if (role && role.id === 'spy') {
-        // must be present in lobby AND not kicked
-        const activePlayer = Object.values(lobby.players).find(p => p.index === Number(idxStr) && !p.kicked);
-        if (activePlayer) spiesAlive++;
-      }
-    }
-  }
-
   if (yesVotes > noVotes) {
-    // match ends
-    let winner, msg;
-    if (spiesAlive > 0) {
-      winner = 'spy';
-      const spyCountText = spiesAlive === 1 ? 'шпион' : spiesAlive < 5 ? `${spiesAlive} шпиона` : `${spiesAlive} шпионов`;
-      msg = `🕵️ Матч завершён! ${spyCountText.charAt(0).toUpperCase() + spyCountText.slice(1)} не ${spiesAlive === 1 ? 'был пойман' : 'были пойманы'} — победа шпионов! (${yesVotes} за / ${noVotes} против)`;
-    } else {
-      winner = 'team';
-      msg = `🎉 Матч завершён! Все шпионы пойманы — победа команды! (${yesVotes} за / ${noVotes} против)`;
-    }
-    addChatMessage(lobby, { type: 'system', text: msg });
-    io.to(lobby.code).emit('match_ended', { winner, spiesAlive, yesVotes, noVotes });
-    // reveal all spies
+    // match ends — build spy status info
+    const spiesInfo = [];
     if (lobby.round && lobby.round.assigned) {
-      const spyList = [];
       for (const [idxStr, role] of Object.entries(lobby.round.assigned)) {
         if (role && role.id === 'spy') {
           const p = Object.values(lobby.players).find(p2 => p2.index === Number(idxStr));
-          spyList.push({ index: Number(idxStr), nick: p ? p.nick : `Player${idxStr}` });
+          const nick = p ? p.nick : `Player${idxStr}`;
+          let status;
+          if (p && p.winner) status = 'guessed';
+          else if (p && p.kicked) status = 'captured';
+          else status = 'free';
+          spiesInfo.push({ index: Number(idxStr), nick, status });
         }
       }
-      io.to(lobby.code).emit('reveal_spies', { spies: spyList, sharedItem: lobby.round.sharedItem });
     }
+
+    const spyCount = spiesInfo.length;
+    const freeCount = spiesInfo.filter(s => s.status === 'free').length;
+    const winner = freeCount > 0 ? 'spy' : 'team';
+    const itemName = getItemName(lobby.round && lobby.round.sharedItem);
+    const msg = generateEndGameMessage(spyCount, spiesInfo, itemName);
+
+    addChatMessage(lobby, { type: 'system', text: `${msg} (${yesVotes} за / ${noVotes} против)` });
+    io.to(lobby.code).emit('match_ended', {
+      winner, spyCount, spiesAlive: freeCount, spiesInfo, yesVotes, noVotes, message: msg
+    });
+
+    // reveal all spies (including ones who already won by guessing correctly)
+    const spyList = spiesInfo.map(s => ({ index: s.index, nick: s.nick, status: s.status }));
+    io.to(lobby.code).emit('reveal_spies', { spies: spyList, sharedItem: lobby.round ? lobby.round.sharedItem : null });
+
+    // automatically reset game state so "Начать раунд" becomes available immediately
+    lobby.state = 'lobby';
+    lobby.round = null;
+    lobby.voteState = null;
+    lobby.finishVoteState = null;
+    if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
+    if (lobby.finishVoteTimer) { clearTimeout(lobby.finishVoteTimer); lobby.finishVoteTimer = null; }
+    io.to(lobby.code).emit('lobby_update', publicLobbyState(lobby));
   } else {
     addChatMessage(lobby, { type: 'system', text: `❌ Завершение матча не прошло (${yesVotes} за / ${noVotes} против). Игра продолжается!` });
     io.to(lobby.code).emit('finish_vote_rejected', { yesVotes, noVotes });
