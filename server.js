@@ -789,6 +789,7 @@ function resolveFinishVote(lobby) {
     lobby.round = null;
     lobby.voteState = null;
     lobby.finishVoteState = null;
+    lobby.seed = randInt32(); // new seed so the next round gets a fresh map/spy assignment
     if (lobby.voteTimer) { clearTimeout(lobby.voteTimer); lobby.voteTimer = null; }
     if (lobby.finishVoteTimer) { clearTimeout(lobby.finishVoteTimer); lobby.finishVoteTimer = null; }
     io.to(lobby.code).emit('lobby_update', publicLobbyState(lobby));
