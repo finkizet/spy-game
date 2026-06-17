@@ -1749,29 +1749,34 @@ socket.on('finish_vote_rejected', () => {
 });
 
 // ─── match ended ─────────────────────────────────────────────────
-socket.on('match_ended', ({ winner, spiesAlive, spyCount, spies, sharedItem, yesVotes, noVotes, message }) => {
+socket.on('match_ended', ({ matchSummary, yesVotes, noVotes }) => {
     hideFinishVoteTimer();
     finishVoteButtons.style.display = 'none';
     finishVoteProgress.textContent = '';
     gameResultOverlay.classList.add('show');
 
-    if (winner === 'spy') {
-        grIcon.textContent  = '🕵️';
-        grTitle.textContent = 'Победа шпионов!';
+    const mapName = (matchSummary && matchSummary.mapName) || '?';
+    const spies   = (matchSummary && matchSummary.spies) || [];
+
+    const spyStatusLabel = {
+        captured: 'изгнан',
+        guessed:  'угадал карту',
+        failed:   'ошибся',
+        active:   'остался в игре'
+    };
+
+    grIcon.textContent  = '🏁';
+    grTitle.textContent = 'Итоги матча';
+
+    grDesc.textContent = `Карта: ${mapName}`;
+
+    if (spies.length === 0) {
+        grSpyReveal.textContent = 'В этом матче шпионов не было';
     } else {
-        grIcon.textContent  = '🎉';
-        grTitle.textContent = 'Победа команды!';
+        grSpyReveal.textContent = spies
+            .map(s => `${s.nick} — ${spyStatusLabel[s.status] || s.status}`)
+            .join(', ');
     }
-
-    // Single source of truth for the result text (headline + per-spy breakdown + card)
-    // comes from the server's `message` — no separate reveal_spies event anymore.
-    grDesc.textContent = message || (winner === 'spy'
-        ? `${spiesAlive} шпион(ов) не пойманы. Команда проиграла.`
-        : 'Все шпионы пойманы. Отличная работа!');
-
-    // grSpyReveal is no longer populated separately — it would just repeat
-    // what's already in `message` above. Keep it empty to avoid duplication.
-    grSpyReveal.textContent = '';
 });
 
 socket.on('spy_failed', ({ nick, msg }) => {

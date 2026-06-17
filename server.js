@@ -236,51 +236,10 @@ function canVote(p) {
   return !p.kicked && !p.winner && !p.guessedWrong;
 }
 
-// Russian pluralization for "шпион" (1 шпион, 2 шпиона, 5 шпионов)
-function pluralizeSpy(n) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} шпион`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} шпиона`;
-  return `${n} шпионов`;
-}
-
 function getItemName(item) {
   if (!item) return '?';
   if (typeof item === 'string') return item;
   return item.ru || item.en || item.id || '?';
-}
-
-// Builds the final end-of-match message.
-// spyCount    — total number of spies in the round.
-// spiesInfo   — array of { nick, status: 'captured' | 'guessed' | 'free' }.
-// itemName    — name of the shared location/card for this round.
-function generateEndGameMessage(spyCount, spiesInfo, itemName) {
-  const freeCount    = spiesInfo.filter(s => s.status === 'free').length;
-  const guessedCount = spiesInfo.filter(s => s.status === 'guessed').length;
-
-  let mainText;
-  if (freeCount === 0 && guessedCount === 0) {
-    // every spy was captured by vote — clean team win
-    mainText = '🎉 Победа команды! Все шпионы пойманы.';
-  } else if (freeCount > 0) {
-    // at least one spy escaped detection — spies win, regardless of others' fate
-    mainText = `🕵️ ${pluralizeSpy(freeCount)} не ${freeCount === 1 ? 'был пойман' : 'были пойманы'}. Команда проиграла.`;
-  } else {
-    // no one is "free", but at least one spy won by guessing the card
-    mainText = `🕵️ ${pluralizeSpy(guessedCount)} ${guessedCount === 1 ? 'угадал' : 'угадали'} карту. Победа шпионов!`;
-  }
-
-  // per-spy status report: clearly separates "captured" vs "guessed" vs "free"
-  const spyReport = spiesInfo.map(s => {
-    if (s.status === 'guessed')  return `${s.nick} (угадал карту)`;
-    if (s.status === 'captured') return `${s.nick} (пойман)`;
-    return `${s.nick} (не пойман)`;
-  }).join(', ');
-
-  const suffix = `Шпионы: ${spyReport}. Карта была: ${itemName}.`;
-
-  return `${mainText} ${suffix}`;
 }
 
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
@@ -785,8 +744,8 @@ function resolveFinishVote(lobby) {
   lobby.finishVoteState = null;
 
   if (yesVotes > noVotes) {
-    // match ends — build spy status info
-    const spiesInfo = [];
+    // match ends — build an objective per-spy status report (no win/lose verdict)
+    const spies = [];
     if (lobby.round && lobby.round.assigned) {
       for (const [idxStr, role] of Object.entries(lobby.round.assigned)) {
         if (role && role.id === 'spy') {
@@ -795,34 +754,34 @@ function resolveFinishVote(lobby) {
           let status;
           if (p && p.winner) status = 'guessed';
           else if (p && p.kicked) status = 'captured';
-          else status = 'free';
-          spiesInfo.push({ index: Number(idxStr), nick, status });
+          else if (p && p.guessedWrong) status = 'failed';
+          else status = 'active';
+          spies.push({ nick, status });
         }
       }
     }
 
-    const spyCount = spiesInfo.length;
-    const freeCount    = spiesInfo.filter(s => s.status === 'free').length;
-    const guessedCount = spiesInfo.filter(s => s.status === 'guessed').length;
-    // Spies win if at least one of them escaped detection OR correctly guessed the card
-    const winner = (freeCount > 0 || guessedCount > 0) ? 'spy' : 'team';
     const sharedItem = lobby.round ? lobby.round.sharedItem : null;
-    const itemName = getItemName(sharedItem);
-    const message = generateEndGameMessage(spyCount, spiesInfo, itemName);
+    const mapName = getItemName(sharedItem);
 
-    addChatMessage(lobby, { type: 'system', text: `${message} (${yesVotes} за / ${noVotes} против)` });
+    const chatSpyReport = spies.length
+      ? spies.map(s => {
+          if (s.status === 'guessed')  return `${s.nick} (угадал карту)`;
+          if (s.status === 'captured') return `${s.nick} (изгнан)`;
+          if (s.status === 'failed')   return `${s.nick} (ошибся)`;
+          return `${s.nick} (остался в игре)`;
+        }).join(', ')
+      : 'шпионов не было';
+    addChatMessage(lobby, {
+      type: 'system',
+      text: `🏁 Матч завершён (${yesVotes} за / ${noVotes} против). Карта: ${mapName}. Шпионы: ${chatSpyReport}.`
+    });
 
-    // Single unified event — carries everything the client needs: result text,
-    // per-spy statuses, and the revealed card. No separate reveal_spies anymore.
+    // Single unified event — purely factual, no automatic win/lose verdict.
     io.to(lobby.code).emit('match_ended', {
-      winner,
-      spyCount,
-      spiesAlive: freeCount,
-      spies: spiesInfo,
-      sharedItem,
+      matchSummary: { mapName, spies },
       yesVotes,
-      noVotes,
-      message
+      noVotes
     });
 
     // automatically reset game state so "Начать раунд" becomes available immediately
