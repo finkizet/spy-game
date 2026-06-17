@@ -352,9 +352,14 @@ io.on('connection', (socket) => {
   // leave lobby
   socket.on('leave_lobby', (data, cb) => {
     const code = socket.data.lobby;
-    if (!code) return;
+    if (!code) { if (cb) cb({ ok: true, notInLobby: true }); return; }
     const lobby = LOBBIES[code];
-    if (!lobby) return;
+    if (!lobby) {
+      // stale/invalid session — clear it so the client can still navigate away
+      socket.data.lobby = null;
+      if (cb) cb({ ok: true, lobbyNotFound: true });
+      return;
+    }
     const nick = lobby.players[socket.id] ? lobby.players[socket.id].nick : '?';
     delete lobby.players[socket.id];
     socket.leave(code);

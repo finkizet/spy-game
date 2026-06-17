@@ -1310,19 +1310,51 @@ function enterLobbyScreen(state) {
 
 function showCenterError(msg) { centerError.textContent = msg; centerError.style.display = 'block'; setTimeout(() => centerError.style.display='none', 4000); }
 
+const MAX_TOASTS = 3;
+const TOAST_HEIGHT = 56; // approx height + gap, used for stacking offset
+const activeToasts = []; // oldest first
+
+function repositionToasts() {
+    // Each toast sits stacked above the base position; the newest is closest
+    // to bottom:80px, older ones are pushed up by TOAST_HEIGHT per slot.
+    for (let i = 0; i < activeToasts.length; i++) {
+        const offsetFromBottom = (activeToasts.length - 1 - i) * TOAST_HEIGHT;
+        activeToasts[i].style.transform = `translate(-50%, -${offsetFromBottom}px)`;
+    }
+}
+
 function showSystemToast(msg, borderColor = '#3b82f6') {
+    // enforce max visible: remove the oldest if we're about to exceed the limit
+    if (activeToasts.length >= MAX_TOASTS) {
+        const oldest = activeToasts.shift();
+        if (oldest && oldest.parentNode) oldest.remove();
+    }
+
     const toast = document.createElement('div');
+    toast.className = 'notification';
     toast.style.cssText = `
-        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        position: fixed; bottom: 80px; left: 50%; transform: translate(-50%, 0);
         background: #1e293b; border: 1px solid ${borderColor}; border-radius: 12px;
         padding: 12px 20px; font-size: 0.9rem; color: #f1f5f9;
         z-index: 9999; text-align: center; max-width: 340px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        transition: transform 0.3s ease, opacity 0.3s ease;
         animation: fadeInUp .3s ease;
     `;
     toast.textContent = msg;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 6000);
+    activeToasts.push(toast);
+    repositionToasts();
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+            const idx = activeToasts.indexOf(toast);
+            if (idx !== -1) activeToasts.splice(idx, 1);
+            repositionToasts();
+        }, 300);
+    }, 6000);
 }
 
 // ─── render lobby state ─────────────────────────────────────────
@@ -1426,15 +1458,29 @@ lgLobbyCode.addEventListener('click', () => {
 
 // ─── lobby buttons ──────────────────────────────────────────────
 lgLeaveBtn.addEventListener('click', () => {
-    if (!currentLobbyCode) return;
+    if (!currentLobbyCode) { showScreen('online'); return; }
+
+    // Force-navigate to the menu no matter what the server says — covers the
+    // case where the lobby is gone (404) or the socket doesn't respond at all.
+    let answered = false;
+    const forceLeaveToMenu = () => {
+        if (answered) return;
+        answered = true;
+        currentLobbyCode = null; myIndex = null;
+        amISpy = false; spyGuessUsed = false;
+        stopLobbyTimer();
+        showScreen('online');
+    };
+
     socket.emit('leave_lobby', {}, (resp) => {
-        if (resp && resp.ok) {
-            currentLobbyCode = null; myIndex = null;
-            amISpy = false; spyGuessUsed = false;
-            stopLobbyTimer();
-            showScreen('online');
-        }
+        // Whatever the server replies (ok, lobbyNotFound, or an error), the
+        // user's intent is to leave — always send them back to the menu.
+        forceLeaveToMenu();
     });
+
+    // Safety net: if the lobby/server doesn't respond at all (e.g. dead lobby,
+    // dropped connection), don't leave the user stuck — bail out after 1.5s.
+    setTimeout(forceLeaveToMenu, 1500);
 });
 
 lgStartBtn.addEventListener('click', () => {
