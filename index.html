@@ -32,6 +32,27 @@
             border: 1px solid #374151; border-radius: 8px; color: #e5e7eb; font-size: 0.9rem;
         }
 
+        /* ── HEADER (logo + GitHub link) ── */
+        #header {
+            position: fixed; top: 10px; left: 16px;
+            display: flex; align-items: center; gap: 12px;
+            z-index: 100;
+        }
+        #header .logo {
+            font-weight: bold; font-size: 20px;
+            color: #e5e7eb; letter-spacing: 0.02em;
+            user-select: none; white-space: nowrap;
+        }
+        #header .github-link {
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0.85; transition: opacity 0.2s ease;
+        }
+        #header .github-link:hover,
+        #header .github-link:focus-visible { opacity: 1; }
+        #header .github-link img {
+            width: 24px; height: 24px; display: block;
+        }
+
         /* ── COMMON ELEMENTS ── */
         label { display: block; font-size: 0.9rem; margin-bottom: 4px; color: #9ca3af; }
         input, select {
@@ -452,6 +473,13 @@
     </style>
 </head>
 <body>
+
+<div id="header">
+    <span class="logo">Spy Game</span>
+    <a class="github-link" href="https://github.com/ВАШ_НИК/ВАШ_РЕПО" target="_blank" rel="noopener noreferrer" title="GitHub">
+        <img src="assets/github.svg" alt="GitHub" />
+    </a>
+</div>
 
 <div id="langTopBar">
     <img src="assets/language.svg" id="langIcon" alt="" />
