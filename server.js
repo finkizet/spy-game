@@ -256,17 +256,29 @@ function getItemName(item) {
 // spiesInfo   — array of { nick, status: 'captured' | 'guessed' | 'free' }.
 // itemName    — name of the shared location/card for this round.
 function generateEndGameMessage(spyCount, spiesInfo, itemName) {
-  const freeCount = spiesInfo.filter(s => s.status === 'free').length;
+  const freeCount    = spiesInfo.filter(s => s.status === 'free').length;
+  const guessedCount = spiesInfo.filter(s => s.status === 'guessed').length;
 
   let mainText;
-  if (freeCount === 0) {
+  if (freeCount === 0 && guessedCount === 0) {
+    // every spy was captured by vote — clean team win
     mainText = '🎉 Победа команды! Все шпионы пойманы.';
-  } else {
+  } else if (freeCount > 0) {
+    // at least one spy escaped detection — spies win, regardless of others' fate
     mainText = `🕵️ ${pluralizeSpy(freeCount)} не ${freeCount === 1 ? 'был пойман' : 'были пойманы'}. Команда проиграла.`;
+  } else {
+    // no one is "free", but at least one spy won by guessing the card
+    mainText = `🕵️ ${pluralizeSpy(guessedCount)} ${guessedCount === 1 ? 'угадал' : 'угадали'} карту. Победа шпионов!`;
   }
 
-  const spyNames = spiesInfo.map(s => s.nick).join(', ');
-  const suffix = `Шпионы: ${spyNames}. Карта была: ${itemName}.`;
+  // per-spy status report: clearly separates "captured" vs "guessed" vs "free"
+  const spyReport = spiesInfo.map(s => {
+    if (s.status === 'guessed')  return `${s.nick} (угадал карту)`;
+    if (s.status === 'captured') return `${s.nick} (пойман)`;
+    return `${s.nick} (не пойман)`;
+  }).join(', ');
+
+  const suffix = `Шпионы: ${spyReport}. Карта была: ${itemName}.`;
 
   return `${mainText} ${suffix}`;
 }
@@ -790,8 +802,10 @@ function resolveFinishVote(lobby) {
     }
 
     const spyCount = spiesInfo.length;
-    const freeCount = spiesInfo.filter(s => s.status === 'free').length;
-    const winner = freeCount > 0 ? 'spy' : 'team';
+    const freeCount    = spiesInfo.filter(s => s.status === 'free').length;
+    const guessedCount = spiesInfo.filter(s => s.status === 'guessed').length;
+    // Spies win if at least one of them escaped detection OR correctly guessed the card
+    const winner = (freeCount > 0 || guessedCount > 0) ? 'spy' : 'team';
     const itemName = getItemName(lobby.round && lobby.round.sharedItem);
     const msg = generateEndGameMessage(spyCount, spiesInfo, itemName);
 
