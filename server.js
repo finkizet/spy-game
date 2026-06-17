@@ -806,17 +806,24 @@ function resolveFinishVote(lobby) {
     const guessedCount = spiesInfo.filter(s => s.status === 'guessed').length;
     // Spies win if at least one of them escaped detection OR correctly guessed the card
     const winner = (freeCount > 0 || guessedCount > 0) ? 'spy' : 'team';
-    const itemName = getItemName(lobby.round && lobby.round.sharedItem);
-    const msg = generateEndGameMessage(spyCount, spiesInfo, itemName);
+    const sharedItem = lobby.round ? lobby.round.sharedItem : null;
+    const itemName = getItemName(sharedItem);
+    const message = generateEndGameMessage(spyCount, spiesInfo, itemName);
 
-    addChatMessage(lobby, { type: 'system', text: `${msg} (${yesVotes} за / ${noVotes} против)` });
+    addChatMessage(lobby, { type: 'system', text: `${message} (${yesVotes} за / ${noVotes} против)` });
+
+    // Single unified event — carries everything the client needs: result text,
+    // per-spy statuses, and the revealed card. No separate reveal_spies anymore.
     io.to(lobby.code).emit('match_ended', {
-      winner, spyCount, spiesAlive: freeCount, spiesInfo, yesVotes, noVotes, message: msg
+      winner,
+      spyCount,
+      spiesAlive: freeCount,
+      spies: spiesInfo,
+      sharedItem,
+      yesVotes,
+      noVotes,
+      message
     });
-
-    // reveal all spies (including ones who already won by guessing correctly)
-    const spyList = spiesInfo.map(s => ({ index: s.index, nick: s.nick, status: s.status }));
-    io.to(lobby.code).emit('reveal_spies', { spies: spyList, sharedItem: lobby.round ? lobby.round.sharedItem : null });
 
     // automatically reset game state so "Начать раунд" becomes available immediately
     lobby.state = 'lobby';

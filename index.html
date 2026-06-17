@@ -1749,11 +1749,12 @@ socket.on('finish_vote_rejected', () => {
 });
 
 // ─── match ended ─────────────────────────────────────────────────
-socket.on('match_ended', ({ winner, spiesAlive, spyCount, spiesInfo, yesVotes, noVotes, message }) => {
+socket.on('match_ended', ({ winner, spiesAlive, spyCount, spies, sharedItem, yesVotes, noVotes, message }) => {
     hideFinishVoteTimer();
     finishVoteButtons.style.display = 'none';
     finishVoteProgress.textContent = '';
     gameResultOverlay.classList.add('show');
+
     if (winner === 'spy') {
         grIcon.textContent  = '🕵️';
         grTitle.textContent = 'Победа шпионов!';
@@ -1761,22 +1762,20 @@ socket.on('match_ended', ({ winner, spiesAlive, spyCount, spiesInfo, yesVotes, n
         grIcon.textContent  = '🎉';
         grTitle.textContent = 'Победа команды!';
     }
+
+    // Single source of truth for the result text (headline + per-spy breakdown + card)
+    // comes from the server's `message` — no separate reveal_spies event anymore.
     grDesc.textContent = message || (winner === 'spy'
         ? `${spiesAlive} шпион(ов) не пойманы. Команда проиграла.`
         : 'Все шпионы пойманы. Отличная работа!');
+
+    // grSpyReveal is no longer populated separately — it would just repeat
+    // what's already in `message` above. Keep it empty to avoid duplication.
+    grSpyReveal.textContent = '';
 });
 
 socket.on('spy_failed', ({ nick, msg }) => {
     showSystemToast(msg, '#ef4444');
-});
-
-
-socket.on('reveal_spies', ({ spies, sharedItem }) => {
-    const lang = langSelect.value;
-    const itemName = sharedItem ? getLocalizedName(sharedItem, lang) : '?';
-    const spyNames = spies.map(s => s.nick).join(', ');
-    const spyLabel = spies.length === 1 ? 'Шпион' : 'Шпионы';
-    grSpyReveal.textContent = `${spyLabel}: ${spyNames} · Карта была: ${itemName}`;
 });
 
 grCloseBtn.addEventListener('click', () => {
