@@ -1417,9 +1417,13 @@ function renderLobbyState(state) {
     const lgLobbyMeta = document.getElementById('lgLobbyMeta');
     if (lgLobbyMeta) lgLobbyMeta.textContent = `${stateLabel} · ${state.players.length}/${state.playersCount}`;
 
-    // players — show all, kicked/winner/guessedWrong shown distinctly
+    // players — show all, kicked/winner/guessedWrong shown distinctly.
+    // Display order follows the server-sent playerOrder; the visible number
+    // is just the player's current position (1, 2, 3...), recalculated on
+    // every render. The real, stable identity used for voting/D&D is
+    // player.index (kept only in data-index, never shown in the UI).
     lgPlayers.innerHTML = state.players
-        .map(p => {
+        .map((p, i) => {
             const isYou   = p.socketId === socket.id;
             const isAdminP= p.socketId === state.adminSocketId;
             const tags = [];
@@ -1434,7 +1438,7 @@ function renderLobbyState(state) {
                 p.guessedWrong ? ' pl-guessedWrong' : ''
             ].join('');
             return `<div class="pl-item${stateClasses}" data-index="${p.index}">
-                <div class="pl-idx">${p.index}</div>
+                <div class="pl-idx">${i + 1}</div>
                 <div class="pl-nick" style="color:${escapeHtml(p.color || '#60a5fa')}">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
             </div>`;
