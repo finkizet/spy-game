@@ -470,6 +470,22 @@
         .nc-btn.active { border-color: #fff; transform: scale(1.15); }
         /* цвет ника в списке игроков */
         .pl-nick[data-color] { }
+
+        /* ── DRAG AND DROP ── */
+        .pl-item {
+            cursor: grab;
+        }
+        .pl-item.dragging {
+            opacity: 0.35;
+            cursor: grabbing;
+        }
+        .pl-item.drag-over {
+            border-color: #3b82f6;
+            background: #0f2040;
+        }
+        .pl-item.no-drag {
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -1403,7 +1419,6 @@ function renderLobbyState(state) {
 
     // players — show all, kicked/winner/guessedWrong shown distinctly
     lgPlayers.innerHTML = state.players
-        .sort((a, b) => a.index - b.index)
         .map(p => {
             const isYou   = p.socketId === socket.id;
             const isAdminP= p.socketId === state.adminSocketId;
@@ -1418,12 +1433,14 @@ function renderLobbyState(state) {
                 p.winner ? ' pl-winner' : '',
                 p.guessedWrong ? ' pl-guessedWrong' : ''
             ].join('');
-            return `<div class="pl-item${stateClasses}">
+            return `<div class="pl-item${stateClasses}" data-index="${p.index}">
                 <div class="pl-idx">${p.index}</div>
                 <div class="pl-nick" style="color:${escapeHtml(p.color || '#60a5fa')}">${escapeHtml(p.nick)}</div>
                 ${tags.join('')}
             </div>`;
         }).join('');
+
+    initDragAndDrop();
 
     // controls
     lgGameSelect.style.display = isAdmin ? '' : 'none';
@@ -1461,6 +1478,65 @@ function renderLobbyState(state) {
         resetActions();
         spyGuessPanel.style.display = 'none';
     }
+}
+
+// ─── drag & drop (player reorder) ───────────────────────────────
+function initDragAndDrop() {
+    const isAdmin = currentLobbyState && currentLobbyState.adminSocketId === socket.id;
+    const isDraggable = isAdmin && currentLobbyState && currentLobbyState.state === 'lobby';
+
+    lgPlayers.querySelectorAll('.pl-item').forEach(item => {
+        item.draggable = isDraggable;
+        if (!isDraggable) {
+            item.classList.add('no-drag');
+            return;
+        }
+        item.classList.remove('no-drag');
+
+        item.addEventListener('dragstart', (e) => {
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', item.dataset.index);
+        });
+
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            lgPlayers.querySelectorAll('.pl-item').forEach(el => el.classList.remove('drag-over'));
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            lgPlayers.querySelectorAll('.pl-item').forEach(el => el.classList.remove('drag-over'));
+            item.classList.add('drag-over');
+        });
+
+        item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+
+            const draggedIndex = Number(e.dataTransfer.getData('text/plain'));
+            const targetIndex  = Number(item.dataset.index);
+            if (draggedIndex === targetIndex) return;
+
+            const allItems = [...lgPlayers.querySelectorAll('.pl-item')];
+            const draggedEl = allItems.find(el => Number(el.dataset.index) === draggedIndex);
+            if (!draggedEl) return;
+
+            lgPlayers.insertBefore(draggedEl, item);
+
+            const newOrder = [...lgPlayers.querySelectorAll('.pl-item')]
+                .map(el => Number(el.dataset.index));
+
+            socket.emit('reorder_players', { code: currentLobbyCode, newOrder }, (resp) => {
+                if (resp && resp.error) showCenterError(resp.error);
+            });
+        });
+    });
 }
 
 function resetActions() {

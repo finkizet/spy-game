@@ -130,18 +130,28 @@ app.post('/api/admin/auth', async (req, res) => {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function publicLobbyState(lobby) {
+  const order = lobby.playerOrder || [];
+  const allPlayers = Object.entries(lobby.players).map(([sid, p]) => ({
+    socketId: sid, nick: p.nick, index: p.index, state: p.state,
+    kicked: !!p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong, color: p.color || '#60a5fa'
+  }));
+  allPlayers.sort((a, b) => {
+    const ia = order.indexOf(a.index);
+    const ib = order.indexOf(b.index);
+    if (ia === -1 && ib === -1) return a.index - b.index;
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
   return {
     code: lobby.code,
     gameKey: lobby.gameKey,
     playersCount: lobby.playersCount,
     state: lobby.state,
     adminSocketId: lobby.adminSocketId,
-    players: Object.entries(lobby.players).map(([sid, p]) => ({
-      socketId: sid, nick: p.nick, index: p.index, state: p.state, kicked: !!p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong, color: p.color || '#60a5fa'
-    })),
+    players: allPlayers,
     roundInfo: lobby.round ? { startedAt: lobby.round.startedAt, spyGuessed: lobby.round.spyGuessed } : null,
     createdAt: lobby.createdAt,
-    // voting state (public — no targets revealed)
     voteState: lobby.voteState || null
   };
 }
@@ -204,6 +214,7 @@ function resolveVote(lobby) {
 
   const [targetSid, targetPlayer] = targetEntry;
   targetPlayer.kicked = true;
+  lobby.playerOrder = lobby.playerOrder.filter(i => i !== targetIndex);
 
   // determine wasSpy for internal logic only — role NOT revealed in chat
   let wasSpy = false;
@@ -298,6 +309,26 @@ io.on('connection', (socket) => {
     if (cb) cb({ ok: true });
   });
 
+  socket.on('reorder_players', ({ code, newOrder }, cb) => {
+    const lobby = LOBBIES[code];
+    if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
+    if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
+    if (lobby.state !== 'lobby') { if (cb) cb({ error: 'Can only reorder in lobby state' }); return; }
+
+    const currentIndexes = Object.values(lobby.players).map(p => p.index).sort((a, b) => a - b);
+    const sortedNew = [...newOrder].map(Number).sort((a, b) => a - b);
+    const valid =
+      Array.isArray(newOrder) &&
+      sortedNew.length === currentIndexes.length &&
+      sortedNew.every((v, i) => v === currentIndexes[i]);
+
+    if (!valid) { if (cb) cb({ error: 'Invalid order' }); return; }
+
+    lobby.playerOrder = newOrder.map(Number);
+    io.to(lobby.code).emit('lobby_update', publicLobbyState(lobby));
+    if (cb) cb({ ok: true });
+  });
+
   // create lobby
   socket.on('create_lobby', ({ gameKey = 'clash' }, cb) => {
     let code;
@@ -308,10 +339,12 @@ io.on('connection', (socket) => {
       adminSocketId: socket.id,
       players: {}, state: 'lobby', round: null,
       chatMessages: [], voteState: null, voteTimer: null,
+      playerOrder: [],
       createdAt: Date.now()
     };
     const index = 1;
     lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
+    lobby.playerOrder.push(index);
     socket.join(code);
     socket.data.lobby = code;
     LOBBIES[code] = lobby;
@@ -340,6 +373,7 @@ io.on('connection', (socket) => {
     }
 
     lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
+    if (!lobby.playerOrder.includes(index)) lobby.playerOrder.push(index);
     socket.join(code);
     socket.data.lobby = code;
     if (cb) cb({ ok: true, code, yourIndex: index });
@@ -361,7 +395,9 @@ io.on('connection', (socket) => {
       return;
     }
     const nick = lobby.players[socket.id] ? lobby.players[socket.id].nick : '?';
+    const leavingIndex = lobby.players[socket.id]?.index;
     delete lobby.players[socket.id];
+    if (leavingIndex !== undefined) lobby.playerOrder = lobby.playerOrder.filter(i => i !== leavingIndex);
     socket.leave(code);
     socket.data.lobby = null;
     if (lobby.adminSocketId === socket.id) {
@@ -720,7 +756,9 @@ io.on('connection', (socket) => {
     const lobby = LOBBIES[code];
     if (!lobby) return;
     const nick = lobby.players[socket.id] ? lobby.players[socket.id].nick : null;
+    const disconnectingIndex = lobby.players[socket.id]?.index;
     delete lobby.players[socket.id];
+    if (disconnectingIndex !== undefined) lobby.playerOrder = lobby.playerOrder.filter(i => i !== disconnectingIndex);
     socket.leave(code);
     if (lobby.adminSocketId === socket.id) {
       const next = Object.keys(lobby.players)[0] || null;
