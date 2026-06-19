@@ -177,11 +177,13 @@
 
             /* БЫЛО */
             /* grid-template-columns: minmax(0, 1fr) 340px 280px; */
+            /* grid-template-columns: minmax(220px, 1fr) minmax(260px, 340px) minmax(220px, 280px); */
 
-            /* СТАЛО */
+            /* СТАЛО: отдаём чату меньше места, а колонке "Игра" — больше,
+               т.к. внутри неё теперь два под-столбца (Лобби/Роль и Игроки/Настройки) */
             grid-template-columns:
-                minmax(220px, 1fr)
-                minmax(260px, 340px)
+                minmax(180px, 0.7fr)
+                minmax(420px, 520px)
                 minmax(220px, 280px);
 
             overflow: hidden;
