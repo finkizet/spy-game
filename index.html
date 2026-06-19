@@ -1594,9 +1594,10 @@ function resetActions() {
 // ─── lobby code copy ────────────────────────────────────────────
 lgLobbyCode.addEventListener('click', () => {
     navigator.clipboard.writeText(lgLobbyCode.textContent).then(() => {
-        const orig = lgLobbyCode.textContent;
-        lgLobbyCode.textContent = '✓ ' + i18n[langSelect.value].copyCode;
-        setTimeout(() => lgLobbyCode.textContent = orig, 1500);
+        // Текст элемента с кодом лобби больше не подменяется (это вызывало
+        // реflow верстки и "дёргало" интерфейс). Вместо этого — локальный
+        // toast: ничего не уходит на сервер, другие игроки его не видят.
+        showSystemToast(i18n[langSelect.value].copyCode, '#22c55e');
     });
 });
 
