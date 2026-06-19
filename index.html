@@ -762,6 +762,7 @@
     </div>
 </div>
 
+<script src="ui-config.js"></script>
 <script>
 const SERVER_BASE = "https://spy-game-clr8.onrender.com";
 
@@ -773,131 +774,26 @@ const gameModes = {
     dota:  { title: { ru: "Dota 2",       en: "Dota 2"       }, label: { ru: "герой из Dota 2",      en: "hero from Dota 2"      }, items: [] }
 };
 
-// ─── i18n ───────────────────────────────────────────────────────
-const i18n = {
-    ru: {
-        pageTitle: "Spy game",
-        msHeading: "Шпион", msSubtitle: "Вечеринковая игра на 4-10 игроков",
-        msOnlineLabel: "Играть онлайн", msOnlineSub: "Общее лобби, роли раздаёт сервер",
-        msOfflineLabel: "Играть офлайн", msOfflineSub: "Без интернета – у каждого своё устройство",
-        backLabel: "Назад",
-        labelGame: "Игра", helpGameMode: "Выбор игры меняет список карт/героев.",
-        spyRole: "🕵️ Шпион", resultTitle: "Твоя роль:",
-        offlineHeading: "Офлайн-режим",
-        offlineSubtitle: "Договоритесь об общем коде и введите одинаковые значения.",
-        labelSeed: "Общий код / seed", seedPlaceholder: "Например: 548129",
-        helpSeed: "Все игроки вводят одинаковый код.",
-        labelPlayers: "Количество игроков", helpPlayers: "Максимум 10.",
-        labelPlayerIndex: "Твой номер игрока", helpPlayerIndex: "Уникальный номер от 1 до числа игроков.",
-        showButton: "Показать мою роль",
-        footerText: "⚠ Вводите коды аккуратно — все должны ввести одинаковые параметры.",
-        errors: {
-            noSeed: "Введите общий код.", playersMin: "Минимум 2 игрока.",
-            playersMax: "Максимум 10 игроков.", badIndex: "Номер игрока от 1 до числа игроков.",
-            cheat: "Играем честно! Выберите другой код если считаете это ошибкой."
-        },
-        onlineHeading: "Онлайн-режим",
-        onlineSubtitle: "Создайте лобби и поделитесь кодом с друзьями.",
-        labelNick: "Никнейм", nickPlaceholder: "Твой ник",
-        createLobbyBtn: "Создать лобби",
-        joinLobbyLabel: "Код лобби", joinLobbyPlaceholder: "Например: ABC123",
-        joinLobbyBtn: "Войти по коду",
-        leaveLobbyBtn: "Выйти",
-        startRoundBtn: "🎮 Начать раунд",
-        nextRoundBtn: "🔄 Следующий раунд",
-        lobbyWord: "Лобби", inGame: "В игре",
-        serverWaking: "Сервер просыпается, подожди ~30 сек...",
-        serverOnline: "● Сервер онлайн", serverOffline: "● Сервер недоступен", serverConnecting: "○ Подключение...",
-        chatHeader: "💬 Чат лобби", chatPlaceholder: "Сообщение...",
-        actionsHeader: "⚡ Действия", playersHeader: "Игроки", settingsHeader: "Настройки",
-        sgTitle: "🕵️ Угадать карту (1 попытка)",
-        sgPlaceholder: "Введи название...", sgConfirm: "✓ Подтвердить угадывание",
-        sgNoResults: "Ничего не найдено", sgHint: "Найди и выбери карту из списка",
-        vkTitle: "🗳️ Голосование за изгнание",
-        startVoteBtn: "⚡ Начать голосование",
-        skipVote: "Пропустить",
-        fvTitle: "🏁 Завершить матч",
-        startFinishVote: "Предложить завершение",
-        finishYes: "✓ Да, завершить",
-        finishNo: "✗ Продолжить",
-        voteInProgress: "Идёт голосование...",
-        voted: (n,t) => `Проголосовало ${n}/${t}`,
-        finishVoted: (n,t) => `Проголосовало ${n}/${t}`,
-        timerLeft: (s) => `⏱ ${s}с`,
-        tagYou: 'ты', tagKicked: 'изгнан', tagWinner: '🏆 угадал', tagGuessedWrong: '❌ не угадал',
-        copyCode: "Скопировано!",
-        sgConfirmDialog: (name) => `Угадать: "${name}"? Это ваша единственная попытка!`,
-        sgConfirmBtn: '✓ Подтвердить',
-        sgGuessCorrect: (name) => `угадал: ${name}!`,
-        sgGuessWrong: (name) => `Не угадал. Правильно: ${name}`,
-        kickedNotice: (nick) => `Ты изгнан голосованием. Наблюдай за игрой.`,
-        grClose: "Закрыть",
-        spyText(modeTitle, label) { return `Ты шпион в ${modeTitle}. Ты НЕ знаешь какой ${label} выпал. Слушай подсказки и не спались.`; },
-        nonSpyText(modeTitle, label, itemName) { return `Тебе выпал ${label}: "${itemName}". Описывай так чтобы шпиону было сложно угадать.`; }
-    },
-    en: {
-        pageTitle: "finkizet game",
-        msHeading: "Spy", msSubtitle: "Party game for 4–10 players",
-        msOnlineLabel: "Play online", msOnlineSub: "Shared lobby, server assigns roles",
-        msOfflineLabel: "Play offline", msOfflineSub: "No internet needed",
-        backLabel: "Back",
-        labelGame: "Game", helpGameMode: "Changes the card/hero list.",
-        spyRole: "🕵️ Spy", resultTitle: "Your role:",
-        offlineHeading: "Offline mode",
-        offlineSubtitle: "Agree on a shared code and enter the same values.",
-        labelSeed: "Shared code / seed", seedPlaceholder: "E.g. 548129",
-        helpSeed: "All players must enter the same code.",
-        labelPlayers: "Number of players", helpPlayers: "Maximum 10.",
-        labelPlayerIndex: "Your player number", helpPlayerIndex: "Unique number from 1 to player count.",
-        showButton: "Show my role",
-        footerText: "⚠ Enter codes carefully — everyone must use the same.",
-        errors: {
-            noSeed: "Enter the shared code.", playersMin: "At least 2 players.",
-            playersMax: "Maximum 10 players.", badIndex: "Player number must be between 1 and total count.",
-            cheat: "Play fair! Choose another code if you think this is a mistake."
-        },
-        onlineHeading: "Online mode",
-        onlineSubtitle: "Create a lobby and share the code with friends.",
-        labelNick: "Nickname", nickPlaceholder: "Your nick",
-        createLobbyBtn: "Create lobby",
-        joinLobbyLabel: "Lobby code", joinLobbyPlaceholder: "E.g. ABC123",
-        joinLobbyBtn: "Join by code",
-        leaveLobbyBtn: "Leave",
-        startRoundBtn: "🎮 Start round",
-        nextRoundBtn: "🔄 Next round",
-        lobbyWord: "Lobby", inGame: "In game",
-        serverWaking: "Server is waking up, please wait ~30 sec...",
-        serverOnline: "● Server online", serverOffline: "● Server offline", serverConnecting: "○ Connecting...",
-        chatHeader: "💬 Lobby chat", chatPlaceholder: "Message...",
-        actionsHeader: "⚡ Actions", playersHeader: "Players", settingsHeader: "Settings",
-        sgTitle: "🕵️ Guess the card (1 attempt)",
-        sgPlaceholder: "Type a name...", sgConfirm: "✓ Confirm guess",
-        sgNoResults: "Nothing found", sgHint: "Find and select a card",
-        vkTitle: "🗳️ Vote to kick",
-        startVoteBtn: "⚡ Start vote",
-        skipVote: "Skip",
-        fvTitle: "🏁 Finish match",
-        startFinishVote: "Propose ending",
-        finishYes: "✓ Yes, finish",
-        finishNo: "✗ Continue",
-        voteInProgress: "Vote in progress...",
-        voted: (n,t) => `Voted ${n}/${t}`,
-        finishVoted: (n,t) => `Voted ${n}/${t}`,
-        timerLeft: (s) => `⏱ ${s}s`,
-        tagYou: 'you', tagKicked: 'out', tagWinner: '🏆 won', tagGuessedWrong: '❌ wrong guess',
-        copyCode: "Copied!",
-        sgConfirmDialog: (name) => `Guess: "${name}"? This is your only attempt!`,
-        sgConfirmBtn: '✓ Confirm',
-        sgGuessCorrect: (name) => `guessed it: ${name}!`,
-        sgGuessWrong: (name) => `Wrong guess. Correct: ${name}`,
-        kickedNotice: (nick) => `You've been voted out. Watch the game.`,
-        grClose: "Close",
-        spyText(modeTitle, label) { return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone got. Listen and don't get caught.`; },
-        nonSpyText(modeTitle, label, itemName) { return `You got a ${label}: "${itemName}". Describe it so the spy can't guess.`; }
-    }
-};
+const {
+    langSelect, modeScreen, onlineScreen, offlineScreen, lobbyGameScreen,
+    btnOnline, btnOffline, backBtn, backFromOffline,
+    nickInput, gameModeOnline, helpGameModeOnline, labelGameOnline,
+    createLobbyBtn, joinLobbyInput, joinLobbyBtn, errorBoxOnline,
+    serverStatusEl, serverStatusTimer,
+    lgLobbyCode, lgStatus, lgLeaveBtn, lgGameSelect, lgStartBtn, lgNextRoundBtn,
+    lgPlayers, centerError, roleCard, rcLabel, rcRole, rcDesc,
+    chatMessages, chatInput, chatSendBtn,
+    spyGuessPanel, spyGuessInput, spyGuessList, spyGuessConfirmBtn, spyGuessResult,
+    voteKickPanel, voteProgress, voteTimerEl, voteTimerBar, voteTimerBarFill,
+    votePlayersList, startVoteBtn,
+    finishVotePanel, finishVoteProgress, finishVoteTimerEl, finishVoteButtons,
+    finishYesBtn, finishNoBtn, startFinishVoteBtn,
+    gameResultOverlay, grIcon, grTitle, grDesc, grSpyReveal, grCloseBtn,
+    gameModeOffline, seedInput, playersInput, playerIndexInput, showRoleBtn,
+    resultOffline, roleTextOffline, extraTextOffline, errorBoxOffline, footerTextEl
+} = uiElements;
 
-// ─── utils ──────────────────────────────────────────────────────
+
 function hashStringToInt(str) {
     let h = 0;
     for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
@@ -970,92 +866,6 @@ function searchItems(query, items, lang, limit = 6) {
         .map(x => x.item);
 }
 
-// ─── DOM refs ───────────────────────────────────────────────────
-const langSelect      = document.getElementById('langSelectTop');
-const modeScreen      = document.getElementById('modeScreen');
-const onlineScreen    = document.getElementById('onlineScreen');
-const offlineScreen   = document.getElementById('offlineScreen');
-const lobbyGameScreen = document.getElementById('lobbyGameScreen');
-const btnOnline       = document.getElementById('btnOnline');
-const btnOffline      = document.getElementById('btnOffline');
-const backBtn         = document.getElementById('backBtn');
-const backFromOffline = document.getElementById('backFromOffline');
-
-// online join/create
-const nickInput         = document.getElementById('nickInput');
-const gameModeOnline    = document.getElementById('gameModeOnline');
-const helpGameModeOnline= document.getElementById('helpGameModeOnline');
-const labelGameOnline   = document.getElementById('labelGameOnline');
-const createLobbyBtn    = document.getElementById('createLobbyBtn');
-const joinLobbyInput    = document.getElementById('joinLobbyInput');
-const joinLobbyBtn      = document.getElementById('joinLobbyBtn');
-const errorBoxOnline    = document.getElementById('errorBoxOnline');
-const serverStatusEl    = document.getElementById('serverStatus');
-const serverStatusTimer = document.getElementById('serverStatusTimer');
-
-// lobby game
-const lgLobbyCode    = document.getElementById('lgLobbyCode');
-const lgStatus       = document.getElementById('lgStatus');
-const lgLeaveBtn     = document.getElementById('lgLeaveBtn');
-const lgGameSelect   = document.getElementById('lgGameSelect');
-const lgStartBtn     = document.getElementById('lgStartBtn');
-const lgNextRoundBtn = document.getElementById('lgNextRoundBtn');
-const lgPlayers      = document.getElementById('lgPlayers');
-const centerError    = document.getElementById('centerError');
-const roleCard       = document.getElementById('roleCard');
-const rcLabel        = document.getElementById('rcLabel');
-const rcRole         = document.getElementById('rcRole');
-const rcDesc         = document.getElementById('rcDesc');
-
-// chat
-const chatMessages   = document.getElementById('chatMessages');
-const chatInput      = document.getElementById('chatInput');
-const chatSendBtn    = document.getElementById('chatSendBtn');
-
-// spy guess
-const spyGuessPanel      = document.getElementById('spyGuessPanel');
-const spyGuessInput      = document.getElementById('spyGuessInput');
-const spyGuessList       = document.getElementById('spyGuessList');
-const spyGuessConfirmBtn = document.getElementById('spyGuessConfirmBtn');
-const spyGuessResult     = document.getElementById('spyGuessResult');
-
-// vote kick
-const voteKickPanel  = document.getElementById('voteKickPanel');
-const voteProgress   = document.getElementById('voteProgress');
-const voteTimerEl    = document.getElementById('voteTimer');
-const voteTimerBar   = document.getElementById('voteTimerBar');
-const voteTimerBarFill = document.getElementById('voteTimerBarFill');
-const votePlayersList= document.getElementById('votePlayersList');
-const startVoteBtn   = document.getElementById('startVoteBtn');
-
-// finish vote
-const finishVotePanel    = document.getElementById('finishVotePanel');
-const finishVoteProgress = document.getElementById('finishVoteProgress');
-const finishVoteTimerEl  = document.getElementById('finishVoteTimer');
-const finishVoteButtons  = document.getElementById('finishVoteButtons');
-const finishYesBtn       = document.getElementById('finishYesBtn');
-const finishNoBtn        = document.getElementById('finishNoBtn');
-const startFinishVoteBtn = document.getElementById('startFinishVoteBtn');
-
-// result overlay
-const gameResultOverlay = document.getElementById('gameResultOverlay');
-const grIcon            = document.getElementById('grIcon');
-const grTitle           = document.getElementById('grTitle');
-const grDesc            = document.getElementById('grDesc');
-const grSpyReveal       = document.getElementById('grSpyReveal');
-const grCloseBtn        = document.getElementById('grCloseBtn');
-
-// offline
-const gameModeOffline   = document.getElementById('gameModeOffline');
-const seedInput         = document.getElementById('seedInput');
-const playersInput      = document.getElementById('playersInput');
-const playerIndexInput  = document.getElementById('playerIndexInput');
-const showRoleBtn       = document.getElementById('showRoleBtn');
-const resultOffline     = document.getElementById('resultOffline');
-const roleTextOffline   = document.getElementById('roleTextOffline');
-const extraTextOffline  = document.getElementById('extraTextOffline');
-const errorBoxOffline   = document.getElementById('errorBoxOffline');
-const footerTextEl      = document.getElementById('footerText');
 
 // ─── state ──────────────────────────────────────────────────────
 let currentLobbyCode  = null;
@@ -1168,6 +978,11 @@ function applyLang(lang) {
         sel.querySelector('option[value="dota"]').textContent  = gameModes.dota.title[lang];
     });
     setServerStatus(serverStatusEl.dataset.state || 'connecting');
+
+    // Hybrid: дополнительно проходим по всем элементам с data-i18n.
+    // Если для языка есть подходящий ключ — подставляем его, если нет —
+    // оставляем текст-заглушку, написанный прямо в HTML.
+    updateUI(lang);
 }
 
 langSelect.addEventListener('change', () => applyLang(langSelect.value));
