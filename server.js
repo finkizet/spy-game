@@ -551,6 +551,16 @@ io.on('connection', (socket) => {
     const role = lobby.round.assigned[player.index];
     if (!role || role.id !== 'spy') { if (cb) cb({ error: 'You are not the spy' }); return; }
 
+    // Spies cannot try to guess the card while a kick vote or finish vote is
+    // in progress — this prevents using the guess to dodge/disrupt an
+    // ongoing vote against them or the match-end decision.
+    if (lobby.voteState && lobby.voteState.phase === 'voting') {
+      if (cb) cb({ error: 'Cannot guess while a kick vote is in progress' }); return;
+    }
+    if (lobby.finishVoteState && lobby.finishVoteState.phase === 'voting') {
+      if (cb) cb({ error: 'Cannot guess while a finish vote is in progress' }); return;
+    }
+
     // Per-player check: each spy gets exactly one guess attempt, independent of teammates.
     if (player.winner || player.guessedWrong) {
       if (cb) cb({ error: 'You have already tried to guess' }); return;

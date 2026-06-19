@@ -1757,6 +1757,9 @@ socket.on('vote_started', ({ voteState, players, totalActive, duration }) => {
     startFinishVoteBtn.style.display = 'none'; // Fix 5: hide finish vote while kick vote runs
     voteEndsAt = voteState.endsAt;
 
+    // Spies cannot guess the card while a vote is active — hide the panel for now
+    if (amISpy && !spyGuessUsed) spyGuessPanel.style.display = 'none';
+
     // build player list (exclude self from votable)
     const myPlayer = currentLobbyState ? currentLobbyState.players.find(p => p.socketId === socket.id) : null;
     const votable = players.filter(p => !myPlayer || p.index !== myPlayer.index);
@@ -1797,6 +1800,8 @@ socket.on('vote_ended', ({ kicked }) => {
     startVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
     startFinishVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
     myVotedThisRound = false;
+    // Vote is over — spies who haven't guessed yet can use the panel again
+    if (amISpy && !spyGuessUsed) spyGuessPanel.style.display = 'block';
 });
 
 socket.on('vote_state', () => {}); // just ack
@@ -1860,6 +1865,9 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
     startFinishVoteBtn.style.display = 'none';
     startVoteBtn.style.display = 'none';
 
+    // Spies cannot guess the card while a vote is active — hide the panel for now
+    if (amISpy && !spyGuessUsed) spyGuessPanel.style.display = 'none';
+
     // Kicked/winner/guessedWrong players cannot vote to finish — hide the buttons entirely
     const meInLobby = currentLobbyState ? currentLobbyState.players.find(p => p.socketId === socket.id) : null;
     const iAmKickedFV = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong);
@@ -1900,6 +1908,8 @@ socket.on('finish_vote_rejected', () => {
     startFinishVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
     startVoteBtn.style.display = currentGameState === 'in-round' ? '' : 'none';
     finishVotedThisRound = false;
+    // Vote is over — spies who haven't guessed yet can use the panel again
+    if (amISpy && !spyGuessUsed) spyGuessPanel.style.display = 'block';
 });
 
 // ─── match ended ─────────────────────────────────────────────────
