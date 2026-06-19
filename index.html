@@ -300,6 +300,24 @@
             min-width: 0;
         }
 
+        /* two vertical sub-columns inside the "Игра" section */
+        #lgCenterColumns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+        #lgCenterColLeft,
+        #lgCenterColRight {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+        @media (max-width: 640px) {
+            #lgCenterColumns { grid-template-columns: 1fr; }
+        }
+
         /* ── RIGHT: ACTIONS ── */
         #lgRight {
             display: flex; flex-direction: column;
@@ -593,38 +611,48 @@
         <div id="lgCenter">
             <div class="col-header" id="gameHeader">🎮 Игра</div>
                 <div id="lgCenterContent">
-                <!-- lobby info + leave -->
-                <div class="card" id="lobbyInfoCard" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
-                    <div>
-                        <div id="lgLobbyCode" style="font-weight:700;font-size:1rem;cursor:pointer;letter-spacing:.08em;" title="Нажми чтобы скопировать">—</div>
-                        <div id="lgLobbyMeta" style="font-size:0.8rem;color:#6b7280;margin-top:2px;"></div>
+                <div id="lgCenterColumns">
+
+                    <!-- LEFT COLUMN: Лобби + Твоя роль -->
+                    <div id="lgCenterColLeft">
+                        <!-- lobby info + leave -->
+                        <div class="card" id="lobbyInfoCard" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+                            <div>
+                                <div id="lgLobbyCode" style="font-weight:700;font-size:1rem;cursor:pointer;letter-spacing:.08em;" title="Нажми чтобы скопировать">—</div>
+                                <div id="lgLobbyMeta" style="font-size:0.8rem;color:#6b7280;margin-top:2px;"></div>
+                            </div>
+                            <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;border:2px solid #ef4444;color:#ef4444;padding:6px 16px;font-size:0.92rem;font-weight:700;border-radius:12px;margin-top:0;" type="button">✕ Выйти</button>
+                        </div>
+
+                        <!-- role card -->
+                        <div id="roleCard">
+                            <div class="rc-label" id="rcLabel"></div>
+                            <div class="rc-role" id="rcRole"></div>
+                            <div class="rc-desc" id="rcDesc"></div>
+                        </div>
                     </div>
-                    <button class="btn-ghost btn-sm" id="lgLeaveBtn" style="width:auto;border:2px solid #ef4444;color:#ef4444;padding:6px 16px;font-size:0.92rem;font-weight:700;border-radius:12px;margin-top:0;" type="button">✕ Выйти</button>
-                </div>
 
-                <!-- role card -->
-                <div id="roleCard">
-                    <div class="rc-label" id="rcLabel"></div>
-                    <div class="rc-role" id="rcRole"></div>
-                    <div class="rc-desc" id="rcDesc"></div>
-                </div>
+                    <!-- RIGHT COLUMN: Игроки + Настройки -->
+                    <div id="lgCenterColRight">
+                        <!-- players list -->
+                        <div class="card">
+                            <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="playersHeader"></div>
+                            <div id="lgPlayers"></div>
+                        </div>
 
-                <!-- players list -->
-                <div class="card">
-                    <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="playersHeader"></div>
-                    <div id="lgPlayers"></div>
-                </div>
+                        <!-- admin/lobby controls -->
+                        <div id="centerControls" class="card">
+                            <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="settingsHeader"></div>
+                            <label for="lgGameSelect" id="lgGameLabel"></label>
+                            <select id="lgGameSelect">
+                                <option value="clash"></option>
+                                <option value="dota"></option>
+                            </select>
+                            <button id="lgStartBtn" type="button" style="display:none;"></button>
+                            <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
+                        </div>
+                    </div>
 
-                <!-- admin/lobby controls -->
-                <div id="centerControls" class="card">
-                    <div style="font-size:.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="settingsHeader"></div>
-                    <label for="lgGameSelect" id="lgGameLabel"></label>
-                    <select id="lgGameSelect">
-                        <option value="clash"></option>
-                        <option value="dota"></option>
-                    </select>
-                    <button id="lgStartBtn" type="button" style="display:none;"></button>
-                    <button id="lgNextRoundBtn" type="button" style="display:none;" class="btn-ghost"></button>
                 </div>
 
                 <div id="centerError" class="error-box" style="display:none;"></div>
