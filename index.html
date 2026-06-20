@@ -17,9 +17,10 @@
         }
 
         /* ── LANGUAGE BAR ── */
+        /* Больше не зафиксирован поверх всех экранов — теперь это обычный
+           блок, который живёт только на первом экране (#modeScreen). */
         #langTopBar {
-            position: fixed; top: 8px; right: 16px;
-            display: flex; align-items: center; gap: 8px; z-index: 100;
+            display: flex; align-items: center; gap: 8px;
         }
         #langIcon { width: 20px; height: 20px; opacity: 0.9; }
         #langSelectTop {
@@ -100,7 +101,7 @@
         #modeScreen {
             display: flex; flex-direction: column;
             align-items: center; justify-content: flex-start;
-            min-height: 100vh; gap: 16px; padding: 24px 16px; padding-top: 80px;
+            min-height: 100vh; gap: 16px; padding: 24px 16px; padding-top: 56px;
         }
         #modeScreen h1 { font-size: 1.8rem; margin-bottom: 4px; text-align: center; }
         #modeScreen .subtitle { font-size: 0.9rem; color: #9ca3af; text-align: center; margin-bottom: 20px; }
@@ -174,23 +175,7 @@
         #lgColumns {
             flex: 1;
             display: grid;
-
-            /* БЫЛО */
-            /* grid-template-columns: minmax(0, 1fr) 340px 280px; */
-            /* grid-template-columns: minmax(220px, 1fr) minmax(260px, 340px) minmax(220px, 280px); */
-
-            /* СТАЛО: отдаём чату меньше места, а колонке "Игра" — больше,
-               т.к. внутри неё теперь два под-столбца (Лобби/Роль и Игроки/Настройки) */
-            /* ИСПРАВЛЕНО: у чата был minmax(180px, 0.7fr) — единственный fr-трек,
-               но он не мог растянуться до правого края, т.к. "Игра" задана через
-               minmax(420px, 520px), а это диапазон, не жёсткая ширина. На широких
-               экранах сумма треков (chat-min + 520 + 280) не покрывала всю ширину
-               #lgColumns, и поскольку fr должен сначала удовлетворить min всех
-               треков, остаток пространства "залипал" между чатом и игрой, либо
-               уходил за пределы видимой области. Меняем minmax("Игра") на жёсткую
-               ширину 520px и убираем верхнюю границу у fr чата — теперь весь
-               остаток ширины гарантированно достаётся только чату, а "Игра" и
-               "Действия" прижимаются вплотную друг к другу у правого края. */
+            
             grid-template-columns:
                 minmax(180px, 1fr)
                 520px
@@ -523,18 +508,20 @@
     </a>
 </div>
 
-<div id="langTopBar">
-    <img src="assets/language.svg" id="langIcon" alt="" />
-    <select id="langSelectTop">
-        <option value="ru">Русский</option>
-        <option value="en">English</option>
-    </select>
-</div>
-
 <!-- ══ MODE SCREEN ══ -->
 <div id="modeScreen">
     <h1 id="msHeading"></h1>
     <div id="msSubtitle" class="subtitle"></div>
+
+    <!-- Выбор языка — глобальный, доступен только здесь, сохраняется в localStorage -->
+    <div id="langTopBar">
+        <img src="assets/language.svg" id="langIcon" alt="" />
+        <select id="langSelectTop">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
     <button class="mode-btn" id="btnOnline">
         <span class="mode-icon">🌐</span>
         <span id="msOnlineLabel"></span>
@@ -821,7 +808,12 @@ function shuffleWithSeed(array, seed) {
 function getLocalizedName(item, lang) {
     if (!item) return '';
     if (typeof item === 'string') return item;
-    return item[lang] || item.ru || item.en || item.id || '';
+    // ru: использовать поле ru.
+    // en: использовать id напрямую (для Clash Royale и др. id уже является
+    // читаемым английским названием). Для Dota 2, где id === ru, это даёт
+    // тот же результат, что и раньше (намеренное дублирование данных).
+    if (lang === 'en') return item.id || item.en || item.ru || '';
+    return item.ru || item.id || item.en || '';
 }
 function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -914,6 +906,8 @@ document.querySelectorAll('.mob-tab').forEach(tab => {
 });
 
 // ─── i18n apply ─────────────────────────────────────────────────
+const LANG_STORAGE_KEY = 'spyGameLang';
+
 function applyLang(lang) {
     const t = i18n[lang];
     document.title = t.pageTitle;
@@ -985,8 +979,17 @@ function applyLang(lang) {
     updateUI(lang);
 }
 
-langSelect.addEventListener('change', () => applyLang(langSelect.value));
-applyLang('ru');
+langSelect.addEventListener('change', () => {
+    localStorage.setItem(LANG_STORAGE_KEY, langSelect.value);
+    applyLang(langSelect.value);
+});
+
+// Восстанавливаем язык из localStorage (если он там есть и валиден),
+// иначе используем 'ru' по умолчанию.
+const savedLang = localStorage.getItem(LANG_STORAGE_KEY);
+const initialLang = (savedLang && i18n[savedLang]) ? savedLang : 'ru';
+langSelect.value = initialLang;
+applyLang(initialLang);
 
 // ─── server status + lobby timer ────────────────────────────────
 function setServerStatus(state) {
