@@ -156,6 +156,67 @@ function publicLobbyState(lobby) {
   };
 }
 
+// ─── chat i18n (системные сообщения на языке создателя лобби) ────────────────
+const CHAT_I18N = {
+  ru: {
+    lobbyCreated: (code) => `🎮 Лобби создано. Код: ${code}`,
+    playerJoined: (nick) => `👋 ${nick} вошёл в лобби.`,
+    playerLeft:   (nick) => `🚶 ${nick} вышел из лобби.`,
+    playerDisconnected: (nick) => `📴 ${nick} отключился.`,
+    roundStarted: () => `🕵️ Раунд начался! Найдите шпиона!`,
+    roundEnded:   () => `🔄 Раунд завершён. Ожидание нового раунда...`,
+    voteNoOneKicked: () => `🤝 Голосование завершилось — никто не изгнан.`,
+    voteStarted: (nick) => `⚡ ${nick} начал голосование об изгнании!`,
+    playerKickedByVote: (nick) => `🚪 ${nick} изгнан голосованием.`,
+    finishVoteProposed: (nick) => `🏁 ${nick} предлагает завершить матч — все шпионы пойманы?`,
+    finishVoteRejected: (yes, no) => `❌ Завершение матча не прошло (${yes} за / ${no} против). Игра продолжается!`,
+    matchEnded: (yes, no, mapName, spyReport) => `🏁 Матч завершён (${yes} за / ${no} против). Карта: ${mapName}. Шпионы: ${spyReport}.`,
+    noSpies: 'шпионов не было',
+    spyGuessed: (nick)  => `${nick} (угадал карту)`,
+    spyCaptured: (nick) => `${nick} (изгнан)`,
+    spyFailed: (nick)   => `${nick} (ошибся)`,
+    spyActive: (nick)   => `${nick} (остался в игре)`,
+    spyGuessedCorrectChat: (nick) => `🎉 Шпион ${nick} угадал карту и победил!`,
+    spyGuessedWrongChat:   (nick) => `❌ Шпион ${nick} не угадал карту и выбыл из голосований до конца раунда!`,
+    spyFailedToast:        (nick) => `🕵️ ${nick} попытался угадать, но ошибся и больше не может голосовать в этом раунде!`
+  },
+  en: {
+    lobbyCreated: (code) => `🎮 Lobby created. Code: ${code}`,
+    playerJoined: (nick) => `👋 ${nick} joined the lobby.`,
+    playerLeft:   (nick) => `🚶 ${nick} left the lobby.`,
+    playerDisconnected: (nick) => `📴 ${nick} disconnected.`,
+    roundStarted: () => `🕵️ Round started! Find the spy!`,
+    roundEnded:   () => `🔄 Round ended. Waiting for the next round...`,
+    voteNoOneKicked: () => `🤝 Vote ended — no one was kicked.`,
+    voteStarted: (nick) => `⚡ ${nick} started a kick vote!`,
+    playerKickedByVote: (nick) => `🚪 ${nick} was voted out.`,
+    finishVoteProposed: (nick) => `🏁 ${nick} proposes ending the match — are all spies caught?`,
+    finishVoteRejected: (yes, no) => `❌ The vote to finish failed (${yes} for / ${no} against). The game continues!`,
+    matchEnded: (yes, no, mapName, spyReport) => `🏁 Match ended (${yes} for / ${no} against). Card: ${mapName}. Spies: ${spyReport}.`,
+    noSpies: 'no spies',
+    spyGuessed: (nick)  => `${nick} (guessed the card)`,
+    spyCaptured: (nick) => `${nick} (captured)`,
+    spyFailed: (nick)   => `${nick} (wrong guess)`,
+    spyActive: (nick)   => `${nick} (still in play)`,
+    spyGuessedCorrectChat: (nick) => `🎉 Spy ${nick} guessed the card and won!`,
+    spyGuessedWrongChat:   (nick) => `❌ Spy ${nick} guessed wrong and is out of voting for the rest of the round!`,
+    spyFailedToast:        (nick) => `🕵️ ${nick} tried to guess but got it wrong and can no longer vote this round!`
+  }
+};
+
+function getLobbyLang(lobby) {
+  return (lobby && lobby.lang === 'en') ? 'en' : 'ru';
+}
+
+// Строит и отправляет системное сообщение чата на языке создателя лобби.
+// key — имя шаблона в CHAT_I18N, ...args — аргументы для шаблона.
+function sysMsg(lobby, key, ...args) {
+  const dict = CHAT_I18N[getLobbyLang(lobby)] || CHAT_I18N.ru;
+  const fn = dict[key];
+  const text = fn ? fn(...args) : key;
+  addChatMessage(lobby, { type: 'system', text });
+}
+
 function addChatMessage(lobby, msg) {
   if (!lobby.chatMessages) lobby.chatMessages = [];
   lobby.chatMessages.push(msg);
@@ -197,7 +258,7 @@ function resolveVote(lobby) {
   const actualKicks = maxTarget !== null ? maxVotes : 0;
   if (!maxTarget || tie || actualKicks === 0 || actualKicks <= activePlayers.length / 2) {
     // ничья, все пропустили, или нет реального большинства "за"
-    addChatMessage(lobby, { type: 'system', text: '🤝 Голосование завершилось — никто не изгнан.' });
+    sysMsg(lobby, 'voteNoOneKicked');
     lobby.voteState = null;
     io.to(code).emit('vote_ended', { kicked: null });
     return;
@@ -223,10 +284,7 @@ function resolveVote(lobby) {
     wasSpy = !!(role && role.id === 'spy');
   }
 
-  addChatMessage(lobby, {
-    type: 'system',
-    text: `🚪 ${escapeNick(targetPlayer.nick)} изгнан голосованием.`
-  });
+  sysMsg(lobby, 'playerKickedByVote', escapeNick(targetPlayer.nick));
 
   // NOT kicked from the room — they stay but are marked kicked (silenced)
   // just notify everyone about the updated lobby state
@@ -247,10 +305,13 @@ function canVote(p) {
   return !p.kicked && !p.winner && !p.guessedWrong;
 }
 
-function getItemName(item) {
+function getItemName(item, lang = 'ru') {
   if (!item) return '?';
   if (typeof item === 'string') return item;
-  return item.ru || item.en || item.id || '?';
+  // ru: поле ru. en: id напрямую (для Clash Royale и др. id уже является
+  // читаемым английским названием; для Dota id === ru — то же самое значение).
+  if (lang === 'en') return item.id || item.en || item.ru || '?';
+  return item.ru || item.id || item.en || '?';
 }
 
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
@@ -330,13 +391,14 @@ io.on('connection', (socket) => {
   });
 
   // create lobby
-  socket.on('create_lobby', ({ gameKey = 'clash' }, cb) => {
+  socket.on('create_lobby', ({ gameKey = 'clash', lang = 'ru' } = {}, cb) => {
     let code;
     do { code = genLobbyCode(); } while (LOBBIES[code]);
     const seed = randInt32();
     const lobby = {
       id: uuidv4(), code, gameKey, playersCount: 10, seed,
       adminSocketId: socket.id,
+      lang: (lang === 'en') ? 'en' : 'ru', // язык создателя — общий для всех системных сообщений в лобби
       players: {}, state: 'lobby', round: null,
       chatMessages: [], voteState: null, voteTimer: null,
       playerOrder: [],
@@ -350,7 +412,7 @@ io.on('connection', (socket) => {
     LOBBIES[code] = lobby;
     if (cb) cb({ ok: true, code, playersCount: 10, gameKey, yourIndex: index });
     io.to(code).emit('lobby_update', publicLobbyState(lobby));
-    addChatMessage(lobby, { type: 'system', text: `🎮 Лобби создано. Код: ${code}` });
+    sysMsg(lobby, 'lobbyCreated', code);
   });
 
   // join lobby
@@ -380,7 +442,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('lobby_update', publicLobbyState(lobby));
 
     const nick = lobby.players[socket.id].nick;
-    addChatMessage(lobby, { type: 'system', text: `👋 ${escapeNick(nick)} вошёл в лобби.` });
+    sysMsg(lobby, 'playerJoined', escapeNick(nick));
   });
 
   // leave lobby
@@ -408,7 +470,7 @@ io.on('connection', (socket) => {
       if (lobby.voteTimer) clearTimeout(lobby.voteTimer);
       delete LOBBIES[code];
     } else {
-      addChatMessage(lobby, { type: 'system', text: `🚶 ${escapeNick(nick)} вышел из лобби.` });
+      sysMsg(lobby, 'playerLeft', escapeNick(nick));
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
     }
     if (cb) cb({ ok: true });
@@ -478,7 +540,7 @@ io.on('connection', (socket) => {
     }
 
     io.to(code).emit('round_started', publicLobbyState(lobby));
-    addChatMessage(lobby, { type: 'system', text: `🕵️ Раунд начался! Найдите шпиона!` });
+    sysMsg(lobby, 'roundStarted');
     if (cb) cb({ ok: true });
   });
 
@@ -495,7 +557,7 @@ io.on('connection', (socket) => {
     lobby.finishVoteState = null;
     lobby.seed = randInt32();
     io.to(code).emit('round_ended', publicLobbyState(lobby));
-    addChatMessage(lobby, { type: 'system', text: '🔄 Раунд завершён. Ожидание нового раунда...' });
+    sysMsg(lobby, 'roundEnded');
     if (cb) cb({ ok: true });
   });
 
@@ -572,10 +634,7 @@ io.on('connection', (socket) => {
     if (correct) {
       player.winner = true;
       lobby.round.spyGuessed = true;
-      addChatMessage(lobby, {
-        type: 'system',
-        text: `🎉 Шпион ${escapeNick(player.nick)} угадал карту и победил!`
-      });
+      sysMsg(lobby, 'spyGuessedCorrectChat', escapeNick(player.nick));
       socket.emit('spy_guess_result', { correct: true, spyNick: player.nick, guessId, correctId, winner: 'spy' });
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
     } else {
@@ -583,15 +642,12 @@ io.on('connection', (socket) => {
       // but does NOT mark them as "kicked" (avoids confusing kicked-by-vote messages).
       player.guessedWrong = true;
 
-      addChatMessage(lobby, {
-        type: 'system',
-        text: `❌ Шпион ${escapeNick(player.nick)} не угадал карту и выбыл из голосований до конца раунда!`
-      });
+      sysMsg(lobby, 'spyGuessedWrongChat', escapeNick(player.nick));
 
       // Notify all players about the failed spy guess
       io.to(code).emit('spy_failed', {
         nick: player.nick,
-        msg: `🕵️ ${player.nick} попытался угадать, но ошибся и больше не может голосовать в этом раунде!`
+        msg: (CHAT_I18N[getLobbyLang(lobby)] || CHAT_I18N.ru).spyFailedToast(player.nick)
       });
 
       socket.emit('spy_guess_result', { correct: false, spyNick: player.nick, guessId, correctId, winner: 'team' });
@@ -638,7 +694,7 @@ io.on('connection', (socket) => {
       totalActive: activePlayers.length,
       duration: VOTE_DURATION
     });
-    addChatMessage(lobby, { type: 'system', text: `⚡ ${escapeNick(lobby.players[socket.id].nick)} начал голосование об изгнании!` });
+    sysMsg(lobby, 'voteStarted', escapeNick(lobby.players[socket.id].nick));
 
     // auto-resolve after 60s
     lobby.voteTimer = setTimeout(() => {
@@ -713,7 +769,7 @@ io.on('connection', (socket) => {
       initiatorNick: lobby.players[socket.id].nick,
       totalActive: fvActivePlayers.length
     });
-    addChatMessage(lobby, { type: 'system', text: `🏁 ${escapeNick(lobby.players[socket.id].nick)} предлагает завершить матч — все шпионы пойманы?` });
+    sysMsg(lobby, 'finishVoteProposed', escapeNick(lobby.players[socket.id].nick));
 
     lobby.finishVoteTimer = setTimeout(() => {
       const l = LOBBIES[code];
@@ -779,7 +835,7 @@ io.on('connection', (socket) => {
       if (lobby.finishVoteTimer) clearTimeout(lobby.finishVoteTimer);
       delete LOBBIES[code];
     } else {
-      if (nick) addChatMessage(lobby, { type: 'system', text: `📴 ${escapeNick(nick)} отключился.` });
+      if (nick) sysMsg(lobby, 'playerDisconnected', escapeNick(nick));
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
     }
   });
@@ -815,20 +871,19 @@ function resolveFinishVote(lobby) {
     }
 
     const sharedItem = lobby.round ? lobby.round.sharedItem : null;
-    const mapName = getItemName(sharedItem);
+    const lobbyLang = getLobbyLang(lobby);
+    const mapName = getItemName(sharedItem, lobbyLang);
+    const chatDict = CHAT_I18N[lobbyLang] || CHAT_I18N.ru;
 
     const chatSpyReport = spies.length
       ? spies.map(s => {
-          if (s.status === 'guessed')  return `${s.nick} (угадал карту)`;
-          if (s.status === 'captured') return `${s.nick} (изгнан)`;
-          if (s.status === 'failed')   return `${s.nick} (ошибся)`;
-          return `${s.nick} (остался в игре)`;
+          if (s.status === 'guessed')  return chatDict.spyGuessed(s.nick);
+          if (s.status === 'captured') return chatDict.spyCaptured(s.nick);
+          if (s.status === 'failed')   return chatDict.spyFailed(s.nick);
+          return chatDict.spyActive(s.nick);
         }).join(', ')
-      : 'шпионов не было';
-    addChatMessage(lobby, {
-      type: 'system',
-      text: `🏁 Матч завершён (${yesVotes} за / ${noVotes} против). Карта: ${mapName}. Шпионы: ${chatSpyReport}.`
-    });
+      : chatDict.noSpies;
+    sysMsg(lobby, 'matchEnded', yesVotes, noVotes, mapName, chatSpyReport);
 
     // Single unified event — purely factual, no automatic win/lose verdict.
     io.to(lobby.code).emit('match_ended', {
@@ -847,7 +902,7 @@ function resolveFinishVote(lobby) {
     if (lobby.finishVoteTimer) { clearTimeout(lobby.finishVoteTimer); lobby.finishVoteTimer = null; }
     io.to(lobby.code).emit('lobby_update', publicLobbyState(lobby));
   } else {
-    addChatMessage(lobby, { type: 'system', text: `❌ Завершение матча не прошло (${yesVotes} за / ${noVotes} против). Игра продолжается!` });
+    sysMsg(lobby, 'finishVoteRejected', yesVotes, noVotes);
     io.to(lobby.code).emit('finish_vote_rejected', { yesVotes, noVotes });
   }
 }

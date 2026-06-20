@@ -33,6 +33,7 @@ const i18n = {
         serverWaking: "Сервер просыпается, подожди ~30 сек...",
         serverOnline: "● Сервер онлайн", serverOffline: "● Сервер недоступен", serverConnecting: "○ Подключение...",
         chatHeader: "💬 Чат лобби", chatPlaceholder: "Сообщение...",
+        gameHeader: "🎮 Игра", chatTab: "💬 Чат", gameTab: "🎮 Игра", actionTab: "⚡ Действия",
         actionsHeader: "⚡ Действия", playersHeader: "Игроки", settingsHeader: "Настройки",
         sgTitle: "🕵️ Угадать карту (1 попытка)",
         sgPlaceholder: "Введи название...", sgConfirm: "✓ Подтвердить угадывание",
@@ -56,6 +57,10 @@ const i18n = {
         sgGuessWrong: (name) => `Не угадал. Правильно: ${name}`,
         kickedNotice: (nick) => `Ты изгнан голосованием. Наблюдай за игрой.`,
         grClose: "Закрыть",
+        grResultTitle: "Итоги матча", grMapLabel: (map) => `Карта: ${map}`,
+        grNoSpies: "В этом матче шпионов не было",
+        spyStatusCaptured: "изгнан", spyStatusGuessed: "угадал карту",
+        spyStatusFailed: "ошибся", spyStatusActive: "остался в игре",
         spyText(modeTitle, label) { return `Ты шпион в ${modeTitle}. Ты НЕ знаешь какой ${label} выпал. Слушай подсказки и не спались.`; },
         nonSpyText(modeTitle, label, itemName) { return `Тебе выпал ${label}: "${itemName}". Описывай так чтобы шпиону было сложно угадать.`; }
     },
@@ -93,6 +98,7 @@ const i18n = {
         serverWaking: "Server is waking up, please wait ~30 sec...",
         serverOnline: "● Server online", serverOffline: "● Server offline", serverConnecting: "○ Connecting...",
         chatHeader: "💬 Lobby chat", chatPlaceholder: "Message...",
+        gameHeader: "🎮 Game", chatTab: "💬 Chat", gameTab: "🎮 Game", actionTab: "⚡ Actions",
         actionsHeader: "⚡ Actions", playersHeader: "Players", settingsHeader: "Settings",
         sgTitle: "🕵️ Guess the card (1 attempt)",
         sgPlaceholder: "Type a name...", sgConfirm: "✓ Confirm guess",
@@ -116,6 +122,10 @@ const i18n = {
         sgGuessWrong: (name) => `Wrong guess. Correct: ${name}`,
         kickedNotice: (nick) => `You've been voted out. Watch the game.`,
         grClose: "Close",
+        grResultTitle: "Match results", grMapLabel: (map) => `Card: ${map}`,
+        grNoSpies: "There were no spies in this match",
+        spyStatusCaptured: "captured", spyStatusGuessed: "guessed the card",
+        spyStatusFailed: "wrong guess", spyStatusActive: "still in play",
         spyText(modeTitle, label) { return `You are the spy in ${modeTitle}. You do NOT know which ${label} everyone got. Listen and don't get caught.`; },
         nonSpyText(modeTitle, label, itemName) { return `You got a ${label}: "${itemName}". Describe it so the spy can't guess.`; }
     }

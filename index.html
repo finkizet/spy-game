@@ -17,10 +17,11 @@
         }
 
         /* ── LANGUAGE BAR ── */
-        /* Больше не зафиксирован поверх всех экранов — теперь это обычный
-           блок, который живёт только на первом экране (#modeScreen). */
+        /* Выбор языка глобальный (сохраняется в localStorage), но визуально
+           остаётся на прежнем месте — фиксирован справа вверху на всех экранах. */
         #langTopBar {
-            display: flex; align-items: center; gap: 8px;
+            position: fixed; top: 8px; right: 16px;
+            display: flex; align-items: center; gap: 8px; z-index: 100;
         }
         #langIcon { width: 20px; height: 20px; opacity: 0.9; }
         #langSelectTop {
@@ -101,7 +102,7 @@
         #modeScreen {
             display: flex; flex-direction: column;
             align-items: center; justify-content: flex-start;
-            min-height: 100vh; gap: 16px; padding: 24px 16px; padding-top: 56px;
+            min-height: 100vh; gap: 16px; padding: 24px 16px; padding-top: 80px;
         }
         #modeScreen h1 { font-size: 1.8rem; margin-bottom: 4px; text-align: center; }
         #modeScreen .subtitle { font-size: 0.9rem; color: #9ca3af; text-align: center; margin-bottom: 20px; }
@@ -175,7 +176,7 @@
         #lgColumns {
             flex: 1;
             display: grid;
-            
+
             grid-template-columns:
                 minmax(180px, 1fr)
                 520px
@@ -508,19 +509,19 @@
     </a>
 </div>
 
+<!-- Выбор языка — глобальный (сохраняется в localStorage), виден на всех экранах -->
+<div id="langTopBar">
+    <img src="assets/language.svg" id="langIcon" alt="" />
+    <select id="langSelectTop">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+    </select>
+</div>
+
 <!-- ══ MODE SCREEN ══ -->
 <div id="modeScreen">
     <h1 id="msHeading"></h1>
     <div id="msSubtitle" class="subtitle"></div>
-
-    <!-- Выбор языка — глобальный, доступен только здесь, сохраняется в localStorage -->
-    <div id="langTopBar">
-        <img src="assets/language.svg" id="langIcon" alt="" />
-        <select id="langSelectTop">
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
-        </select>
-    </div>
 
     <button class="mode-btn" id="btnOnline">
         <span class="mode-icon">🌐</span>
@@ -588,9 +589,9 @@
 
     <!-- mobile tabs -->
     <div id="mobileTabs">
-        <button class="mob-tab active" data-tab="chat" type="button">💬 Чат</button>
-        <button class="mob-tab" data-tab="game" type="button">🎮 Игра</button>
-        <button class="mob-tab" data-tab="action" type="button">⚡ Действия</button>
+        <button class="mob-tab active" data-tab="chat" id="mobTabChat" type="button">💬 Чат</button>
+        <button class="mob-tab" data-tab="game" id="mobTabGame" type="button">🎮 Игра</button>
+        <button class="mob-tab" data-tab="action" id="mobTabAction" type="button">⚡ Действия</button>
     </div>
 
     <!-- columns -->
@@ -946,9 +947,13 @@ function applyLang(lang) {
     // lobby game
     document.getElementById('chatHeader').textContent        = t.chatHeader;
     chatInput.placeholder                                    = t.chatPlaceholder;
+    document.getElementById('gameHeader').textContent        = t.gameHeader;
     document.getElementById('actionsHeader').textContent     = t.actionsHeader;
     document.getElementById('playersHeader').textContent     = t.playersHeader;
     document.getElementById('settingsHeader').textContent    = t.settingsHeader;
+    document.getElementById('mobTabChat').textContent        = t.chatTab;
+    document.getElementById('mobTabGame').textContent        = t.gameTab;
+    document.getElementById('mobTabAction').textContent      = t.actionTab;
     if (document.getElementById('nickColorLabelOnline')) {
         document.getElementById('nickColorLabelOnline').textContent = lang === 'ru' ? 'Цвет ника' : 'Nick color';
     }
@@ -1160,7 +1165,7 @@ applyNickColor(localNickColor);
 createLobbyBtn.addEventListener('click', () => {
     errorBoxOnline.style.display = 'none';
     createLobbyBtn.disabled = true;
-    socket.emit('create_lobby', { gameKey: gameModeOnline.value }, (resp) => {
+    socket.emit('create_lobby', { gameKey: gameModeOnline.value, lang: langSelect.value }, (resp) => {
         console.log('[lobby] create_lobby resp:', resp);
         createLobbyBtn.disabled = false;
         if (resp.error) { showErrorOnline(resp.error); return; }
@@ -1774,23 +1779,24 @@ socket.on('match_ended', ({ matchSummary, yesVotes, noVotes }) => {
     finishVoteProgress.textContent = '';
     gameResultOverlay.classList.add('show');
 
+    const lang = langSelect.value, t = i18n[lang];
     const mapName = (matchSummary && matchSummary.mapName) || '?';
     const spies   = (matchSummary && matchSummary.spies) || [];
 
     const spyStatusLabel = {
-        captured: 'изгнан',
-        guessed:  'угадал карту',
-        failed:   'ошибся',
-        active:   'остался в игре'
+        captured: t.spyStatusCaptured,
+        guessed:  t.spyStatusGuessed,
+        failed:   t.spyStatusFailed,
+        active:   t.spyStatusActive
     };
 
     grIcon.textContent  = '🏁';
-    grTitle.textContent = 'Итоги матча';
+    grTitle.textContent = t.grResultTitle;
 
-    grDesc.textContent = `Карта: ${mapName}`;
+    grDesc.textContent = t.grMapLabel(mapName);
 
     if (spies.length === 0) {
-        grSpyReveal.textContent = 'В этом матче шпионов не было';
+        grSpyReveal.textContent = t.grNoSpies;
     } else {
         grSpyReveal.textContent = spies
             .map(s => `${s.nick} — ${spyStatusLabel[s.status] || s.status}`)
