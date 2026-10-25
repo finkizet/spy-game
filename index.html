@@ -97,6 +97,8 @@
             background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.4);
             color: #fecaca; font-size: 0.85rem; margin-top: 10px;
         }
+        #onlineScreen h1 { font-size: 1.5rem; margin-bottom: 4px; }
+        .subtitle { font-size: 0.9rem; color: #9ca3af; margin-bottom: 16px; }
 
         /* ── MODE SCREEN ── */
         #modeScreen {
@@ -411,6 +413,15 @@
         #finishVoteProgress {
             font-size: 0.82rem; color: #6b7280; margin-bottom: 8px;
         }
+        .vp-option {
+            padding: 8px 10px; border-radius: 8px;
+            background: #0a1120; border: 1px solid #1e2a3a;
+            font-size: 0.85rem; cursor: pointer; color: #d1d5db;
+            text-align: left; width: 100%; margin: 0;
+            transition: background .15s;
+        }
+        .vp-option:hover { background: #1e2a3a; border-color: #fb923c; }
+        .vp-option.skip { color: #6b7280; font-style: italic; }
 
         /* game result overlay */
         #gameResultOverlay {
