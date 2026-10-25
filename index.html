@@ -275,6 +275,7 @@
         }
         .pl-item.pl-kicked .pl-nick { text-decoration: line-through; color: #6b7280; }
         .pl-item.pl-kicked .pl-idx  { background: #2a1a1a; color: #f87171; }
+        .pl-item.pl-offline { opacity: 0.5; }
         .pl-item.pl-winner {
             border-color: #4a3a10;
         }
@@ -879,6 +880,25 @@ let currentLobbyState = null;
 const NICK_KEY = 'finkizet_nick';
 let localNick = localStorage.getItem(NICK_KEY) || '';
 
+// ─── persistent client identity + saved lobby (for reconnect) ───
+const CLIENT_ID_KEY = 'finkizet_client_id';
+const LOBBY_KEY     = 'finkizet_lobby_code';
+function getClientId() {
+    let id = null;
+    try { id = localStorage.getItem(CLIENT_ID_KEY); } catch (e) {}
+    if (!id) {
+        id = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+        try { localStorage.setItem(CLIENT_ID_KEY, id); } catch (e) {}
+    }
+    return id;
+}
+const clientId = getClientId();
+function saveLobbyCode(code) { try { localStorage.setItem(LOBBY_KEY, code); } catch (e) {} }
+function clearLobbyCode()    { try { localStorage.removeItem(LOBBY_KEY); } catch (e) {} }
+function getSavedLobbyCode() { try { return localStorage.getItem(LOBBY_KEY); } catch (e) { return null; } }
+
 // ─── navigation ─────────────────────────────────────────────────
 function showScreen(name) {
     console.log('[nav] showScreen:', name);
@@ -1125,6 +1145,11 @@ socket.on('connect', () => {
     socket.emit('set_color', localNickColor);
     setServerStatus('online');
     stopWakeBump();
+
+    // Переподключение (обрыв сети / перезагрузка страницы): возвращаемся в то же
+    // лобби под тем же clientId — роль и статусы сохраняются, респавна нет.
+    const savedCode = currentLobbyCode || getSavedLobbyCode();
+    if (savedCode) tryRejoin(savedCode);
 });
 socket.on('connect_error', (err) => { console.warn('[socket] connect_error:', err.message); setServerStatus('offline'); startWakeBump(); });
 socket.on('disconnect', (reason) => {
@@ -1165,7 +1190,7 @@ applyNickColor(localNickColor);
 createLobbyBtn.addEventListener('click', () => {
     errorBoxOnline.style.display = 'none';
     createLobbyBtn.disabled = true;
-    socket.emit('create_lobby', { gameKey: gameModeOnline.value, lang: langSelect.value }, (resp) => {
+    socket.emit('create_lobby', { gameKey: gameModeOnline.value, lang: langSelect.value, clientId }, (resp) => {
         console.log('[lobby] create_lobby resp:', resp);
         createLobbyBtn.disabled = false;
         if (resp.error) { showErrorOnline(resp.error); return; }
@@ -1181,10 +1206,11 @@ joinLobbyBtn.addEventListener('click', () => {
     if (!code) { showErrorOnline('Введи код лобби'); return; }
     errorBoxOnline.style.display = 'none';
     joinLobbyBtn.disabled = true;
-    socket.emit('join_lobby', { code, index: 'auto' }, (resp) => {
+    socket.emit('join_lobby', { code, index: 'auto', clientId }, (resp) => {
         console.log('[lobby] join_lobby resp:', resp);
         joinLobbyBtn.disabled = false;
         if (resp.error) { showErrorOnline(resp.error); return; }
+        if (resp.rejoined) { applyRejoin(resp); return; }
         currentLobbyCode = resp.code;
         myIndex = resp.yourIndex;
         socket.emit('get_lobby', { code: resp.code }, (r) => { if (r.ok) enterLobbyScreen(r.lobby); });
@@ -1192,9 +1218,47 @@ joinLobbyBtn.addEventListener('click', () => {
     });
 });
 
+// ─── rejoin (reconnect without respawn) ─────────────────────────
+function tryRejoin(code) {
+    socket.emit('rejoin_lobby', { code, clientId }, (resp) => {
+        console.log('[lobby] rejoin_lobby resp:', resp);
+        if (resp && resp.ok) { applyRejoin(resp); return; }
+        // лобби исчезло или нас уже удалили (истёк grace-период) — возвращаемся в меню
+        const wasInLobby = !!currentLobbyCode;
+        clearLobbyCode();
+        currentLobbyCode = null; myIndex = null;
+        amISpy = false; spyGuessUsed = false;
+        stopLobbyTimer();
+        if (wasInLobby) {
+            showScreen('online');
+            showErrorOnline(langSelect.value === 'ru'
+                ? 'Соединение потеряно, лобби недоступно.'
+                : 'Connection lost, the lobby is no longer available.');
+        }
+    });
+}
+
+function applyRejoin(resp) {
+    currentLobbyCode = resp.code;
+    myIndex = resp.yourIndex;
+    enterLobbyScreen(resp.lobby);
+    (resp.messages || []).forEach(appendChatMsg);
+
+    const me = resp.lobby.players.find(p => p.socketId === socket.id);
+
+    // восстанавливаем роль (без сброса попытки угадывания)
+    if (resp.role) applyRole(resp.role, me);
+    renderLobbyState(resp.lobby);
+
+    // восстанавливаем активные голосования
+    if (resp.vote) onVoteStarted(resp.vote);
+    if (resp.finishVote) onFinishVoteStarted(resp.finishVote);
+}
+
 // ─── enter lobby screen ─────────────────────────────────────────
 function enterLobbyScreen(state) {
     console.log('[lobby] enterLobbyScreen, code:', state?.code);
+    if (state && state.code) saveLobbyCode(state.code);
     showScreen('lobby');
     chatMessages.innerHTML = '';
     spyGuessUsed = false; selectedGuessItem = null;
@@ -1291,7 +1355,10 @@ function renderLobbyState(state) {
             if (p.kicked) tags.push(`<span class="pl-tag kicked">${i18n[lang].tagKicked || 'изгнан'}</span>`);
             if (p.winner) tags.push(`<span class="pl-tag winner">${i18n[lang].tagWinner || '🏆'}</span>`);
             if (p.guessedWrong) tags.push(`<span class="pl-tag guessedWrong">${i18n[lang].tagGuessedWrong || '❌'}</span>`);
+            if (p.disconnected) tags.push(`<span class="pl-tag kicked">📴 ${lang === 'ru' ? 'нет связи' : 'offline'}</span>`);
+            if (p.spectator)    tags.push(`<span class="pl-tag">👁 ${lang === 'ru' ? 'наблюдатель' : 'spectator'}</span>`);
             const stateClasses = [
+                p.disconnected ? ' pl-offline' : '',
                 p.kicked ? ' pl-kicked' : '',
                 p.winner ? ' pl-winner' : '',
                 p.guessedWrong ? ' pl-guessedWrong' : ''
@@ -1319,8 +1386,8 @@ function renderLobbyState(state) {
         if (state.state === 'in-round') {
             const meInLobby     = state.players.find(p => p.socketId === socket.id);
             const iAmKicked     = meInLobby && meInLobby.kicked;
-            const iCantVote     = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong);
-            const activePlayers = state.players.filter(p => !p.kicked && !p.winner && !p.guessedWrong);
+            const iCantVote     = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong || meInLobby.spectator);
+            const activePlayers = state.players.filter(p => !p.kicked && !p.winner && !p.guessedWrong && !p.spectator && !p.disconnected);
             const tooFewToVote  = activePlayers.length <= 2;
 
             // kicked/winner/guessedWrong players or small groups can't start/vote kick
@@ -1434,6 +1501,7 @@ lgLeaveBtn.addEventListener('click', () => {
     const forceLeaveToMenu = () => {
         if (answered) return;
         answered = true;
+        clearLobbyCode();
         currentLobbyCode = null; myIndex = null;
         amISpy = false; spyGuessUsed = false;
         stopLobbyTimer();
@@ -1496,7 +1564,9 @@ chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKe
 socket.on('chat_message', appendChatMsg);
 
 // ─── role assigned ──────────────────────────────────────────────
-socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
+// `me` передаётся только при возвращении в лобби (rejoin): тогда статус
+// "уже угадывал" берётся с сервера, а не сбрасывается.
+function applyRole({ role, isSpy, sharedLabel }, me) {
     const lang = langSelect.value, t = i18n[lang];
     const mode = gameModes[sharedLabel] || gameModes.clash;
     amISpy = isSpy;
@@ -1521,6 +1591,11 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
         selectedGuessItem = null;
         // снимаем disabled со всех элементов панели (после предыдущего раунда)
         spyGuessPanel.querySelectorAll('input, button').forEach(el => el.disabled = false);
+        // при возвращении: попытка уже использована — панель не показываем
+        if (me && (me.winner || me.guessedWrong || me.kicked)) {
+            spyGuessUsed = true;
+            spyGuessPanel.style.display = 'none';
+        }
     } else {
         roleCard.classList.remove('spy-card');
         const name = getLocalizedName(role, lang);
@@ -1533,7 +1608,8 @@ socket.on('role_assigned', ({ role, isSpy, sharedLabel }) => {
     startVoteBtn.style.display      = '';
     startFinishVoteBtn.style.display = '';
     myVotedThisRound = false; finishVotedThisRound = false;
-});
+}
+socket.on('role_assigned', (payload) => applyRole(payload));
 
 // ─── spy guess logic ────────────────────────────────────────────
 spyGuessInput.addEventListener('input', () => {
@@ -1607,7 +1683,7 @@ startVoteBtn.addEventListener('click', () => {
     });
 });
 
-socket.on('vote_started', ({ voteState, players, totalActive, duration }) => {
+function onVoteStarted({ voteState, players, totalActive, duration, alreadyVoted, votedCount }) {
     // автопереключение на вкладку Действия
     const actionTab = document.querySelector('.mob-tab[data-tab="action"]');
     if (actionTab) actionTab.click();
@@ -1642,10 +1718,17 @@ socket.on('vote_started', ({ voteState, players, totalActive, duration }) => {
         });
     });
 
+    // вернулись в середине голосования, где уже проголосовали — блокируем кнопки
+    if (alreadyVoted) {
+        myVotedThisRound = true;
+        votePlayersList.querySelectorAll('.vp-option').forEach(b => b.disabled = true);
+    }
+
     const vTotal = totalActive || players.length;
-    voteProgress.textContent = t.voted(0, vTotal);
+    voteProgress.textContent = t.voted(votedCount || 0, vTotal);
     startVoteTimer(duration, vTotal);
-});
+}
+socket.on('vote_started', onVoteStarted);
 
 socket.on('vote_update', ({ votedCount, totalActive }) => {
     const lang = langSelect.value, t = i18n[lang];
@@ -1719,7 +1802,7 @@ startFinishVoteBtn.addEventListener('click', () => {
     });
 });
 
-socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
+function onFinishVoteStarted({ duration, initiatorNick, totalActive, alreadyVoted, votedCount }) {
     const lang = langSelect.value, t = i18n[lang];
     finishVotedThisRound = false;
     startFinishVoteBtn.style.display = 'none';
@@ -1730,7 +1813,7 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
 
     // Kicked/winner/guessedWrong players cannot vote to finish — hide the buttons entirely
     const meInLobby = currentLobbyState ? currentLobbyState.players.find(p => p.socketId === socket.id) : null;
-    const iAmKickedFV = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong);
+    const iAmKickedFV = meInLobby && (meInLobby.kicked || meInLobby.winner || meInLobby.guessedWrong || meInLobby.spectator);
     if (!iAmKickedFV) {
         finishVoteButtons.style.display = 'flex';
         finishYesBtn.disabled = false;
@@ -1740,9 +1823,15 @@ socket.on('finish_vote_started', ({ duration, initiatorNick, totalActive }) => {
     }
 
     const fvTotal = totalActive || (currentLobbyState ? currentLobbyState.players.filter(p => !p.kicked && !p.winner && !p.guessedWrong).length : '?');
-    finishVoteProgress.textContent = t.finishVoted(0, fvTotal);
+    if (alreadyVoted) {
+        finishVotedThisRound = true;
+        finishYesBtn.disabled = true; finishNoBtn.disabled = true;
+    }
+
+    finishVoteProgress.textContent = t.finishVoted(votedCount || 0, fvTotal);
     startFinishVoteTimer(duration || 30, fvTotal);
-});
+}
+socket.on('finish_vote_started', onFinishVoteStarted);
 
 socket.on('finish_vote_update', ({ votedCount, totalActive }) => {
     const lang = langSelect.value, t = i18n[lang];
@@ -1839,6 +1928,7 @@ socket.on('round_ended',   (s) => {
 
 socket.on('kicked', ({ reason }) => {
     alert((reason || 'Тебя кикнули'));
+    clearLobbyCode();
     currentLobbyCode = null; myIndex = null;
     stopLobbyTimer();
     showScreen('online');

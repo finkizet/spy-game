@@ -133,7 +133,8 @@ function publicLobbyState(lobby) {
   const order = lobby.playerOrder || [];
   const allPlayers = Object.entries(lobby.players).map(([sid, p]) => ({
     socketId: sid, nick: p.nick, index: p.index, state: p.state,
-    kicked: !!p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong, color: p.color || '#60a5fa'
+    kicked: !!p.kicked, winner: !!p.winner, guessedWrong: !!p.guessedWrong, color: p.color || '#60a5fa',
+    disconnected: p.connected === false, spectator: !!p.spectator
   }));
   allPlayers.sort((a, b) => {
     const ia = order.indexOf(a.index);
@@ -163,6 +164,7 @@ const CHAT_I18N = {
     playerJoined: (nick) => `👋 ${nick} вошёл в лобби.`,
     playerLeft:   (nick) => `🚶 ${nick} вышел из лобби.`,
     playerDisconnected: (nick) => `📴 ${nick} отключился.`,
+    playerReconnected: (nick) => `🔌 ${nick} вернулся в лобби.`,
     roundStarted: () => `🕵️ Раунд начался! Найдите шпиона!`,
     roundEnded:   () => `🔄 Раунд завершён. Ожидание нового раунда...`,
     voteNoOneKicked: () => `🤝 Голосование завершилось — никто не изгнан.`,
@@ -185,6 +187,7 @@ const CHAT_I18N = {
     playerJoined: (nick) => `👋 ${nick} joined the lobby.`,
     playerLeft:   (nick) => `🚶 ${nick} left the lobby.`,
     playerDisconnected: (nick) => `📴 ${nick} disconnected.`,
+    playerReconnected: (nick) => `🔌 ${nick} reconnected.`,
     roundStarted: () => `🕵️ Round started! Find the spy!`,
     roundEnded:   () => `🔄 Round ended. Waiting for the next round...`,
     voteNoOneKicked: () => `🤝 Vote ended — no one was kicked.`,
@@ -302,7 +305,116 @@ function escapeNick(s) {
 // haven't already won by guessing correctly, and haven't used up
 // their wrong guess (guessedWrong).
 function canVote(p) {
-  return !p.kicked && !p.winner && !p.guessedWrong;
+  return !p.kicked && !p.winner && !p.guessedWrong && !p.spectator && p.connected !== false;
+}
+
+// ─── reconnect support ───────────────────────────────────────────────────────
+// Если игрок отключился во время раунда, его запись (роль, статусы) сохраняется
+// на RECONNECT_GRACE_MS. Вернувшись с тем же clientId, он получает всё обратно.
+const RECONNECT_GRACE_MS = 2 * 60 * 1000;
+
+function pickNewAdmin(lobby, excludeSid) {
+  const sids = Object.keys(lobby.players).filter(s => s !== excludeSid);
+  const connected = sids.find(s => lobby.players[s].connected !== false);
+  return connected || sids[0] || null;
+}
+
+// Окончательно удаляет игрока из лобби (выход, истёк grace-период, дисконнект вне раунда).
+function removePlayer(lobby, sid, msgKey) {
+  const p = lobby.players[sid];
+  if (!p) return;
+  if (p.graceTimer) { clearTimeout(p.graceTimer); p.graceTimer = null; }
+  const code = lobby.code;
+  const nick = p.nick;
+  delete lobby.players[sid];
+  lobby.playerOrder = lobby.playerOrder.filter(i => i !== p.index);
+  if (lobby.adminSocketId === sid) {
+    const next = pickNewAdmin(lobby, sid);
+    lobby.adminSocketId = next;
+    if (next && lobby.players[next].clientId) lobby.adminClientId = lobby.players[next].clientId;
+  }
+  if (Object.keys(lobby.players).length === 0) {
+    if (lobby.voteTimer) clearTimeout(lobby.voteTimer);
+    if (lobby.finishVoteTimer) clearTimeout(lobby.finishVoteTimer);
+    delete LOBBIES[code];
+    return;
+  }
+  sysMsg(lobby, msgKey, escapeNick(nick));
+  io.to(code).emit('lobby_update', publicLobbyState(lobby));
+}
+
+function buildRejoinPayload(lobby, sid, p) {
+  const payload = {
+    ok: true, rejoined: true, code: lobby.code, yourIndex: p.index,
+    lobby: publicLobbyState(lobby),
+    messages: lobby.chatMessages || []
+  };
+
+  // роль — только та, что уже была выдана в этом раунде
+  if (lobby.round && !p.spectator) {
+    const role = lobby.round.assigned[p.index];
+    if (role) {
+      payload.role = { role, index: p.index, sharedLabel: lobby.gameKey, isSpy: role.id === 'spy' };
+    }
+  }
+
+  // активное голосование за изгнание
+  const vs = lobby.voteState;
+  if (vs && vs.phase === 'voting') {
+    const act = Object.values(lobby.players).filter(canVote);
+    payload.vote = {
+      voteState: { phase: vs.phase, startedAt: vs.startedAt, endsAt: vs.endsAt, initiatorNick: vs.initiatorNick },
+      players: act.map(x => ({ index: x.index, nick: x.nick })),
+      totalActive: act.length,
+      duration: Math.max(1, Math.ceil((vs.endsAt - Date.now()) / 1000)),
+      alreadyVoted: sid in vs.votes,
+      votedCount: Object.keys(vs.votes).length
+    };
+  }
+
+  // активное голосование за завершение матча
+  const fv = lobby.finishVoteState;
+  if (fv && fv.phase === 'voting') {
+    payload.finishVote = {
+      duration: Math.max(1, Math.ceil((fv.endsAt - Date.now()) / 1000)),
+      totalActive: Object.values(lobby.players).filter(canVote).length,
+      alreadyVoted: sid in fv.votes,
+      votedCount: Object.keys(fv.votes).length
+    };
+  }
+  return payload;
+}
+
+// Привязывает существующего игрока к новому сокету.
+function rejoinPlayer(socket, lobby, oldSid, p) {
+  const code = lobby.code;
+  const wasOffline = p.connected === false;
+  if (p.graceTimer) { clearTimeout(p.graceTimer); p.graceTimer = null; }
+
+  if (oldSid !== socket.id) {
+    const oldSocket = io.sockets.sockets.get(oldSid);
+    if (oldSocket) { oldSocket.data.lobby = null; oldSocket.leave(code); }
+    delete lobby.players[oldSid];
+    lobby.players[socket.id] = p;
+    if (lobby.adminSocketId === oldSid) lobby.adminSocketId = socket.id;
+    for (const st of [lobby.voteState, lobby.finishVoteState]) {
+      if (st && st.votes && oldSid in st.votes) {
+        st.votes[socket.id] = st.votes[oldSid];
+        delete st.votes[oldSid];
+      }
+    }
+  }
+  // вернувшийся создатель лобби снова становится админом
+  if (p.clientId && lobby.adminClientId === p.clientId) lobby.adminSocketId = socket.id;
+
+  p.connected = true;
+  socket.join(code);
+  socket.data.lobby = code;
+  socket.data.nick = p.nick;
+
+  if (wasOffline) sysMsg(lobby, 'playerReconnected', escapeNick(p.nick));
+  io.to(code).emit('lobby_update', publicLobbyState(lobby));
+  return buildRejoinPayload(lobby, socket.id, p);
 }
 
 function getItemName(item, lang = 'ru') {
@@ -391,7 +503,8 @@ io.on('connection', (socket) => {
   });
 
   // create lobby
-  socket.on('create_lobby', ({ gameKey = 'clash', lang = 'ru' } = {}, cb) => {
+  socket.on('create_lobby', ({ gameKey = 'clash', lang = 'ru', clientId } = {}, cb) => {
+    const cid = (typeof clientId === 'string' && clientId) ? clientId.slice(0, 64) : null;
     let code;
     do { code = genLobbyCode(); } while (LOBBIES[code]);
     const seed = randInt32();
@@ -405,7 +518,8 @@ io.on('connection', (socket) => {
       createdAt: Date.now()
     };
     const index = 1;
-    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
+    lobby.players[socket.id] = { nick: socket.data.nick || `Host${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa', clientId: cid, connected: true, spectator: false };
+    lobby.adminClientId = cid;
     lobby.playerOrder.push(index);
     socket.join(code);
     socket.data.lobby = code;
@@ -416,10 +530,23 @@ io.on('connection', (socket) => {
   });
 
   // join lobby
-  socket.on('join_lobby', ({ code, index }, cb) => {
+  socket.on('join_lobby', ({ code, index, clientId }, cb) => {
     code = (code || '').toUpperCase();
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
+
+    clientId = (typeof clientId === 'string' && clientId) ? clientId.slice(0, 64) : null;
+
+    // Тот же клиент уже есть в лобби — это возвращение, а не новый игрок
+    // (никакого "респавна": роль и статусы сохраняются).
+    if (clientId) {
+      const existing = Object.entries(lobby.players).find(([, p]) => p.clientId === clientId);
+      if (existing) {
+        const payload = rejoinPlayer(socket, lobby, existing[0], existing[1]);
+        if (cb) cb(payload);
+        return;
+      }
+    }
 
     if (!index || index === 'auto') {
       const takenIndexes = Object.values(lobby.players).map(p => p.index);
@@ -434,7 +561,9 @@ io.on('connection', (socket) => {
       if (taken) { if (cb) cb({ error: 'Index already taken' }); return; }
     }
 
-    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa' };
+    // Новый игрок, зашедший посреди раунда, становится наблюдателем:
+    // роли нет, голосовать нельзя — до следующего раунда.
+    lobby.players[socket.id] = { nick: socket.data.nick || `Player${socket.id.slice(0,4)}`, index, state: 'in-lobby', kicked: false, winner: false, guessedWrong: false, color: socket.data.color || '#60a5fa', clientId, connected: true, spectator: lobby.state === 'in-round' };
     if (!lobby.playerOrder.includes(index)) lobby.playerOrder.push(index);
     socket.join(code);
     socket.data.lobby = code;
@@ -456,23 +585,9 @@ io.on('connection', (socket) => {
       if (cb) cb({ ok: true, lobbyNotFound: true });
       return;
     }
-    const nick = lobby.players[socket.id] ? lobby.players[socket.id].nick : '?';
-    const leavingIndex = lobby.players[socket.id]?.index;
-    delete lobby.players[socket.id];
-    if (leavingIndex !== undefined) lobby.playerOrder = lobby.playerOrder.filter(i => i !== leavingIndex);
     socket.leave(code);
     socket.data.lobby = null;
-    if (lobby.adminSocketId === socket.id) {
-      const next = Object.keys(lobby.players)[0];
-      lobby.adminSocketId = next || null;
-    }
-    if (Object.keys(lobby.players).length === 0) {
-      if (lobby.voteTimer) clearTimeout(lobby.voteTimer);
-      delete LOBBIES[code];
-    } else {
-      sysMsg(lobby, 'playerLeft', escapeNick(nick));
-      io.to(code).emit('lobby_update', publicLobbyState(lobby));
-    }
+    removePlayer(lobby, socket.id, 'playerLeft');
     if (cb) cb({ ok: true });
   });
 
@@ -481,6 +596,10 @@ io.on('connection', (socket) => {
     const lobby = LOBBIES[code];
     if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
     if (lobby.adminSocketId !== socket.id) { if (cb) cb({ error: 'Not admin' }); return; }
+    // игроки, так и не вернувшиеся после обрыва, в новый раунд не попадают
+    for (const [sid, p] of Object.entries(lobby.players)) {
+      if (p.connected === false) removePlayer(lobby, sid, 'playerLeft');
+    }
     const currentPlayersCount = Object.keys(lobby.players).length;
     if (currentPlayersCount < 3) { if (cb) cb({ error: 'Not enough players (min 3)' }); return; }
 
@@ -530,6 +649,7 @@ io.on('connection', (socket) => {
       p.kicked = false;
       p.winner = false;
       p.guessedWrong = false;
+      p.spectator = false;
     }
 
     // notify players privately
@@ -569,6 +689,9 @@ io.on('connection', (socket) => {
     const targetSid = Object.keys(lobby.players).find(sid => lobby.players[sid].index === Number(targetIndex));
     if (!targetSid) { if (cb) cb({ error: 'Player not found' }); return; }
     io.to(targetSid).emit('kicked', { reason: 'Kicked by admin' });
+    const kickedP = lobby.players[targetSid];
+    if (kickedP.graceTimer) clearTimeout(kickedP.graceTimer);
+    lobby.playerOrder = lobby.playerOrder.filter(i => i !== kickedP.index);
     delete lobby.players[targetSid];
     const kickedSocket = io.sockets.sockets.get(targetSid);
     if (kickedSocket) kickedSocket.leave(code);
@@ -821,23 +944,40 @@ io.on('connection', (socket) => {
     if (!code) return;
     const lobby = LOBBIES[code];
     if (!lobby) return;
-    const nick = lobby.players[socket.id] ? lobby.players[socket.id].nick : null;
-    const disconnectingIndex = lobby.players[socket.id]?.index;
-    delete lobby.players[socket.id];
-    if (disconnectingIndex !== undefined) lobby.playerOrder = lobby.playerOrder.filter(i => i !== disconnectingIndex);
-    socket.leave(code);
-    if (lobby.adminSocketId === socket.id) {
-      const next = Object.keys(lobby.players)[0] || null;
-      lobby.adminSocketId = next;
-    }
-    if (Object.keys(lobby.players).length === 0) {
-      if (lobby.voteTimer) clearTimeout(lobby.voteTimer);
-      if (lobby.finishVoteTimer) clearTimeout(lobby.finishVoteTimer);
-      delete LOBBIES[code];
-    } else {
-      if (nick) sysMsg(lobby, 'playerDisconnected', escapeNick(nick));
+    const sid = socket.id;
+    const p = lobby.players[sid];
+    if (!p) return;
+
+    // Во время раунда игрока не удаляем: помечаем отключённым и ждём возвращения.
+    if (lobby.state === 'in-round' && p.clientId) {
+      p.connected = false;
+      if (lobby.adminSocketId === sid) {
+        const next = pickNewAdmin(lobby, sid);
+        if (next && lobby.players[next].connected !== false) lobby.adminSocketId = next;
+      }
+      p.graceTimer = setTimeout(() => {
+        const l = LOBBIES[code];
+        if (l && l.players[sid] && l.players[sid].connected === false) removePlayer(l, sid, 'playerLeft');
+      }, RECONNECT_GRACE_MS);
+      sysMsg(lobby, 'playerDisconnected', escapeNick(p.nick));
       io.to(code).emit('lobby_update', publicLobbyState(lobby));
+      return;
     }
+
+    removePlayer(lobby, sid, 'playerDisconnected');
+  });
+
+  // возвращение в лобби после обрыва / перезагрузки страницы
+  socket.on('rejoin_lobby', ({ code, clientId } = {}, cb) => {
+    code = (code || '').toUpperCase();
+    const lobby = LOBBIES[code];
+    if (!lobby) { if (cb) cb({ error: 'Lobby not found' }); return; }
+    const entry = (typeof clientId === 'string' && clientId)
+      ? Object.entries(lobby.players).find(([, p]) => p.clientId === clientId.slice(0, 64))
+      : null;
+    if (!entry) { if (cb) cb({ error: 'Player not found' }); return; }
+    const payload = rejoinPlayer(socket, lobby, entry[0], entry[1]);
+    if (cb) cb(payload);
   });
 });
 
